@@ -33,7 +33,7 @@ const MapPage = () => {
     const dLon = toRad(lon2 - lon1);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat1)) * 
       Math.cos(toRad(lat2)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
@@ -49,28 +49,28 @@ const MapPage = () => {
   const createPopupContent = (story) => {
     const popupContainer = document.createElement('div');
     popupContainer.className = 'p-2';
-
+  
     const username = document.createElement('p');
     username.className = 'font-bold mb-2';
     username.textContent = story.user.username;
     popupContainer.appendChild(username);
-
+  
     const content = document.createElement('p');
     content.className = 'text-sm mb-3';
     content.textContent = story.content;
     popupContainer.appendChild(content);
-
+  
     const timestamp = document.createElement('p');
     timestamp.className = 'text-xs text-gray-500 mb-2';
     timestamp.textContent = new Date(story.createdAt).toLocaleString();
     popupContainer.appendChild(timestamp);
-
+  
     if (story.mediaUrls && story.mediaUrls.length > 0) {
       const mediaContainer = document.createElement('div');
       mediaContainer.className = 'story-media mt-2';
-
+  
       story.mediaUrls.forEach(url => {
-        if (url.match(/\.(jpg|jpeg|png|gif)$/i)) {
+        if (url.startsWith('data:image/')) {
           const imgContainer = document.createElement('div');
           imgContainer.className = 'mb-2';
           
@@ -85,10 +85,10 @@ const MapPage = () => {
           img.onload = () => {
             img.style.opacity = '1';
           };
-
+  
           imgContainer.appendChild(img);
           mediaContainer.appendChild(imgContainer);
-        } else if (url.match(/\.(mp3|wav)$/i)) {
+        } else if (url.startsWith('data:audio/')) {
           const audioContainer = document.createElement('div');
           audioContainer.className = 'mb-2';
           
@@ -98,17 +98,17 @@ const MapPage = () => {
           
           const source = document.createElement('source');
           source.src = url;
-          source.type = url.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav';
+          source.type = url.includes('audio/mpeg') ? 'audio/mpeg' : 'audio/wav';
           
           audio.appendChild(source);
           audioContainer.appendChild(audio);
           mediaContainer.appendChild(audioContainer);
         }
       });
-
+  
       popupContainer.appendChild(mediaContainer);
     }
-
+  
     return popupContainer;
   };
 
@@ -123,24 +123,44 @@ const MapPage = () => {
   // Initialize geolocation
   useEffect(() => {
     if ('geolocation' in navigator) {
+      const options = { 
+        enableHighAccuracy: true,
+        maximumAge: 30000,
+        timeout: 27000
+      };
+      console.log('Requesting geolocation with options:', options);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { longitude, latitude } = position.coords;
           setUserLocation({ lng: longitude, lat: latitude });
           setLocationError(null);
+          console.log('Geolocation success:', position);
         },
         (error) => {
           console.error('Location error:', error);
           setLocationError(error.message);
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              console.error('User denied the request for Geolocation.');
+              break;
+            case error.POSITION_UNAVAILABLE:
+              console.error('Location information is unavailable.');
+              break;
+            case error.TIMEOUT:
+              console.error('The request to get user location timed out.');
+              break;
+            case error.UNKNOWN_ERROR:
+              console.error('An unknown error occurred.');
+              break;
+            default:
+              console.error('Unknown geolocation error code:', error.code);
+          }
         },
-        { 
-          enableHighAccuracy: true,
-          maximumAge: 30000,
-          timeout: 27000
-        }
+        options
       );
     } else {
       setLocationError('Geolocation is not supported by this browser');
+      console.error('Geolocation is not supported by this browser');
     }
   }, []);
 
@@ -266,7 +286,7 @@ const MapPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://192.168.15.5:5522/stories/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=10`,
+        `http://192.168.100.65:5522/stories/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=10`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

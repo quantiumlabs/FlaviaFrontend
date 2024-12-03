@@ -84,7 +84,7 @@ export default function CreateMistPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://192.168.15.5:5522/stories', {
+      const response = await fetch('http://192.168.100.65:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
