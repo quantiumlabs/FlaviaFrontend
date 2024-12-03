@@ -1,18 +1,28 @@
-// src/app/page.js
-import { redirect } from 'next/navigation';
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Loader } from "@/components/ui/loader"; // shadcn component
 
 export default function Home() {
-  // Redirect to auth page if not logged in, or map if logged in
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      redirect('/auth');
-    } else {
-      redirect('/map');
-    }
-  }
-  
-  // Return empty div for server-side rendering
-  return <div></div>;
-}
+  const router = useRouter();
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/auth");
+    } else {
+      router.push("/map");
+    }
+  }, [router]);
+
+  // Render a loading indicator while redirecting
+  return (
+  <div>
+    <h1 className="flex 12px">Carregando...</h1>
+    <div className="flex items-center justify-center h-screen">
+      <Loader />
+    </div>
+  </div>
+  );
+}

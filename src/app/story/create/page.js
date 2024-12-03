@@ -1,16 +1,16 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Mic, X } from 'lucide-react';
 
-export default function CreateStoryPage() {
-  const [content, setContent] = useState('');
+export default function CreateMistPage() {
+  const [mistContent, setMistContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  const [cloudLocation, setCloudLocation] = useState(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const router = useRouter();
@@ -19,12 +19,12 @@ export default function CreateStoryPage() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          setCloudLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
         },
-        (error) => console.error('Location error:', error)
+        (error) => console.error('Erro ao obter localização:', error)
       );
     }
   }, []);
@@ -54,7 +54,7 @@ export default function CreateStoryPage() {
       mediaRecorder.start();
       setIsRecording(true);
     } catch (error) {
-      console.error('Recording error:', error);
+      console.error('Erro na gravação:', error);
     }
   };
 
@@ -68,15 +68,15 @@ export default function CreateStoryPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!userLocation) {
-      alert('Location not available');
+    if (!cloudLocation) {
+      alert('Localização não disponível');
       return;
     }
 
     const formData = new FormData();
-    formData.append('content', content);
-    formData.append('latitude', userLocation.latitude);
-    formData.append('longitude', userLocation.longitude);
+    formData.append('content', mistContent);
+    formData.append('latitude', cloudLocation.latitude);
+    formData.append('longitude', cloudLocation.longitude);
     
     mediaFiles.forEach((file) => {
       formData.append('media', file);
@@ -84,7 +84,7 @@ export default function CreateStoryPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5522/stories', {
+      const response = await fetch('http://192.168.15.5:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -96,7 +96,7 @@ export default function CreateStoryPage() {
         router.push('/map');
       }
     } catch (error) {
-      console.error('Error creating story:', error);
+      console.error('Erro ao criar névoa:', error);
     }
   };
 
@@ -105,9 +105,9 @@ export default function CreateStoryPage() {
       <Card>
         <CardContent className="space-y-4 p-4">
           <Textarea
-            placeholder="Share your story..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+            placeholder="Compartilhe sua história como névoa..."
+            value={mistContent}
+            onChange={(e) => setMistContent(e.target.value)}
             className="min-h-32"
           />
           
@@ -116,7 +116,7 @@ export default function CreateStoryPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Camera className="mr-2" /> Add Photos
+              <Camera className="mr-2" /> Adicionar Imagens
             </Button>
             <input
               type="file"
@@ -132,7 +132,7 @@ export default function CreateStoryPage() {
               onClick={isRecording ? stopRecording : startRecording}
             >
               <Mic className="mr-2" />
-              {isRecording ? 'Stop Recording' : 'Record Audio'}
+              {isRecording ? 'Parar Gravação' : 'Gravar Áudio'}
             </Button>
           </div>
 
@@ -143,12 +143,12 @@ export default function CreateStoryPage() {
                   {file.type.startsWith('image/') ? (
                     <img
                       src={URL.createObjectURL(file)}
-                      alt="Preview"
+                      alt="Pré-visualização"
                       className="w-full h-24 object-cover rounded"
                     />
                   ) : (
                     <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center">
-                      Audio File
+                      Arquivo de Áudio
                     </div>
                   )}
                   <Button
@@ -172,7 +172,7 @@ export default function CreateStoryPage() {
             onClick={handleSubmit}
             className="w-full"
           >
-            Share Story
+            Compartilhar Névoa
           </Button>
         </CardContent>
       </Card>
