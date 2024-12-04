@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +17,13 @@ export default function CreateMistPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect if not logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -27,7 +35,7 @@ export default function CreateMistPage() {
         (error) => console.error('Erro ao obter localização:', error)
       );
     }
-  }, []);
+  }, [router]);
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -84,7 +92,7 @@ export default function CreateMistPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://192.168.100.65:5522/stories', {
+      const response = await fetch('http://192.168.15.5:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -93,6 +101,8 @@ export default function CreateMistPage() {
       });
 
       if (response.ok) {
+        // Clear first-time login flag after successful story creation
+        localStorage.removeItem('isFirstLogin');
         router.push('/map');
       }
     } catch (error) {

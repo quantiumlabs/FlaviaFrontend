@@ -45,6 +45,9 @@ const MapPage = () => {
     return degrees * (Math.PI / 180);
   };
 
+
+
+
   // Create popup content with DOM elements
   const createPopupContent = (story) => {
     const popupContainer = document.createElement('div');
@@ -285,8 +288,13 @@ const MapPage = () => {
 
     try {
       const token = localStorage.getItem('token');
+
+      if (localStorage.getItem('firsttime') === 'true') {
+        router.push('/story/create')
+        localStorage.setItem('firsttime', 'false');
+      }
       const response = await fetch(
-        `http://192.168.100.65:5522/stories/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=10`,
+        `http://192.168.15.5:5522/stories/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=10`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -372,6 +380,26 @@ const MapPage = () => {
     }
   }, [userLocation]);
 
+  const fetchPendingRequests = useCallback(async () => {
+    if (!user) return;
+  
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `http://192.168.15.5:5522/stories/modifications/pending`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      setPendingRequests(data);
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+    }
+  }, [user]);
+
+  
+
   // Set up story fetching interval
   useEffect(() => {
     fetchAndUpdateStories();
@@ -390,6 +418,19 @@ const MapPage = () => {
       map.current.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 20 });
     }
   };
+
+  useEffect(() => {
+    // Check for first-time login and redirect if necessary
+    if (localStorage.getItem('isFirstLogin') === 'true') {
+      router.push('/story/create');
+      return;
+    }
+
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, [router]);
 
   return (
     <div className="relative h-screen h-[100dvh]">

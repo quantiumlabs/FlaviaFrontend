@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,7 +41,7 @@ export default function AuthPage() {
     const endpoint = isLogin ? 'login' : 'register';
     
     try {
-      const response = await fetch(`http://192.168.100.65:5522/auth/${endpoint}`, {
+      const response = await fetch(`http://192.168.15.5:5522/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -48,7 +50,6 @@ export default function AuthPage() {
       const data = await response.json();
       
       if (!response.ok) {
-
         const errorMessages = {
           'Username and password are required': 'Nome de usuário e senha são obrigatórios',
           'Invalid credentials': 'Credenciais inválidas',
@@ -60,11 +61,22 @@ export default function AuthPage() {
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      if (endpoint === 'login') {
-        router.push('/map');
-      } else {
-        setError('Cadastro realizado com sucesso. Faça login agora.');
       
+      // Check if the user is an admin
+      const isAdmin = data.isAdmin;
+      
+      if (endpoint === 'register') {
+        localStorage.setItem('isFirstLogin', 'true');
+        setIsLogin(true);
+        setError('Cadastro realizado com sucesso. Faça login agora.');
+      } else {
+        if (isAdmin) {
+          router.push('/admin');
+        } else if (localStorage.getItem('isFirstLogin') === 'true') {
+          router.push('/story/create');
+        } else {
+          router.push('/map');
+        }
       }
     } catch (error) {
       console.error('Erro de autenticação:', error);
