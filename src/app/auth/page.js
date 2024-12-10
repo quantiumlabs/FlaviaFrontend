@@ -41,7 +41,7 @@ export default function AuthPage() {
     const endpoint = isLogin ? 'login' : 'register';
     
     try {
-      const response = await fetch(`http://192.168.15.5:5522/auth/${endpoint}`, {
+      const response = await fetch(`http://localhost:5522/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

@@ -15,12 +15,19 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ImageLightbox from 'react-image-lightbox';
+import 'react-image-lightbox/style.css';
 
 const AdminDashboard = () => {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+
+  // State for lightbox
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [images, setImages] = useState([]);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -30,7 +37,7 @@ const AdminDashboard = () => {
           throw new Error('No token found');
         }
 
-        const response = await fetch('http://192.168.15.5:5522/admin/stories', {
+        const response = await fetch('http://localhost:5522/admin/stories', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -66,7 +73,7 @@ const AdminDashboard = () => {
         throw new Error('No token found');
       }
 
-      const response = await fetch(`http://192.168.15.5:5522/stories/${storyId}`, {
+      const response = await fetch(`http://localhost:5522/stories/${storyId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -81,6 +88,12 @@ const AdminDashboard = () => {
       console.error('Error:', error);
       toast.error('Failed to delete story');
     }
+  };
+
+  const openLightbox = (images, index) => {
+    setImages(images);
+    setPhotoIndex(index);
+    setIsOpen(true);
   };
 
   if (loading) {
@@ -106,7 +119,7 @@ const AdminDashboard = () => {
           <CardTitle>Admin Dashboard</CardTitle>
           <Button variant="ghost" onClick={() => router.push('/map')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Map
+            Go to map
           </Button>
         </CardHeader>
         <CardContent>
@@ -146,7 +159,8 @@ const AdminDashboard = () => {
                                 alt={`story-image-${index}`}
                                 width={50}
                                 height={50}
-                                className="rounded"
+                                className="rounded cursor-pointer"
+                                onClick={() => openLightbox(story.mediaUrls, index)}
                               />
                             );
                           } else if (mediaUrl.startsWith('data:audio/')) {
@@ -170,7 +184,8 @@ const AdminDashboard = () => {
                                   alt={`story-media-${index}`}
                                   width={50}
                                   height={50}
-                                  className="rounded"
+                                  className="rounded cursor-pointer"
+                                  onClick={() => openLightbox(story.mediaUrls, index)}
                                 />
                               );
                             } else {
@@ -204,6 +219,21 @@ const AdminDashboard = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {isOpen && (
+        <ImageLightbox
+          mainSrc={images[photoIndex]}
+          nextSrc={images[(photoIndex + 1) % images.length]}
+          prevSrc={images[(photoIndex + images.length - 1) % images.length]}
+          onCloseRequest={() => setIsOpen(false)}
+          onMovePrevRequest={() =>
+            setPhotoIndex((photoIndex + images.length - 1) % images.length)
+          }
+          onMoveNextRequest={() =>
+            setPhotoIndex((photoIndex + 1) % images.length)
+          }
+        />
+      )}
     </div>
   );
 };

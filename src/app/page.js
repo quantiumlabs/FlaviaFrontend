@@ -16,10 +16,8 @@ export default function Home() {
     }
   }, [router]);
 
-  // Render a loading indicator while redirecting
   return (
   <div>
-    <h1 className="flex 12px">Carregando...</h1>
     <div className="flex items-center justify-center h-screen">
       <Loader />
     </div>
