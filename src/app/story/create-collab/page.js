@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Mic, X, Image as ImageIcon, Send, Loader2, Plus, Minus } from 'lucide-react';
+import { Camera, Mic, X, Image as ImageIcon, Maximize2, Send, Loader2, Users } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,388 +14,329 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Toaster } from '@/components/ui/toaster';
-import { toast } from '@/components/ui/toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-const API_URL = 'http://localhost:5522';
-const MIN_COLLABORATORS = 1;
-
-const CollaboratorInput = ({ collaborators, updateCollaborator, removeCollaborator, addCollaborator }) => (
-  <div>
-    <CardTitle className="mb-4">Colaboradores</CardTitle>
-    {collaborators.map((collaborator, index) => (
-      <div key={index} className="flex items-center gap-2 mb-2">
-        <Input
-          value={collaborator}
-          onChange={(e) => updateCollaborator(index, e.target.value)}
-          placeholder="Nome de usuário"
-          className="w-full"
-        />
-        {index > 0 && (
-          <Button 
-            variant="destructive" 
-            onClick={() => removeCollaborator(index)}
-            type="button"
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-        )}
-        {index === collaborators.length - 1 && (
-          <Button 
-            variant="secondary" 
-            onClick={addCollaborator}
-            type="button"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    ))}
-  </div>
-);
-
-const MediaUploader = ({ mediaFiles, setMediaFiles, handleCameraCapture, startRecording, stopRecording, isRecording, recordingTime }) => {
-  const fileInputRef = useRef(null);
-
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('audio/'));
-    setMediaFiles(prev => [...prev, ...imageFiles]);
-  };
-
-  return (
-    <div>
-      <CardTitle className="mb-4">Mídia</CardTitle>
-      <div className="flex items-center gap-2">
-        <Button type="button" onClick={() => fileInputRef.current.click()}>
-          <ImageIcon className="h-4 w-4 mr-2" />
-          Imagem
-        </Button>
-        <Button type="button" onClick={handleCameraCapture} disabled={isRecording}>
-          <Camera className="h-4 w-4 mr-2" />
-          Fotografar
-        </Button>
-        <Button type="button" onClick={isRecording ? stopRecording : startRecording}>
-          <Mic className="h-4 w-4 mr-2" />
-          {isRecording ? `Parar (${formatTime(recordingTime)})` : 'Gravar Áudio'}
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImageUpload}
-          hidden
-          multiple
-          accept="image/*,audio/*"
-        />
-      </div>
-      <MediaFilesList mediaFiles={mediaFiles} setMediaFiles={setMediaFiles} />
-    </div>
-  );
-};
-
-const MediaFilesList = ({ mediaFiles, setMediaFiles }) => (
-  mediaFiles.length > 0 && (
-    <div className="mt-4">
-      <CardTitle className="mb-2">Arquivos Selecionados</CardTitle>
-      <div className="flex flex-wrap gap-2">
-        {mediaFiles.map((file, index) => (
-          <div key={index} className="flex items-center bg-gray-100 p-2 rounded-md">
-            <span>{file.name}</span>
-            <Button 
-              variant="ghost" 
-              onClick={() => setMediaFiles(prev => prev.filter((_, i) => i !== index))}
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-);
-
-const useLocation = () => {
-  const [location, setLocation] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setError('Geolocalização não suportada pelo navegador');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        });
-      },
-      (error) => setError(`Erro ao obter localização: ${error.message}`)
-    );
-  }, []);
-
-  return { location, error };
-};
-
-const CreateStoryPage = () => {
+const CreateCollabStoryPage = () => {
   const [storyContent, setStoryContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [collaborators, setCollaborators] = useState(['']);
-  const [userData, setUserData] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const timerRef = useRef(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewAudio, setPreviewAudio] = useState(null);
+  const [cloudLocation, setCloudLocation] = useState(null);
+  const [collaborator, setCollaborator] = useState('');
 
+  const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const timerRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const router = useRouter();
-  const { location, error: locationError } = useLocation();
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCloudLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => console.error('Erro ao obter localização:', error)
+      );
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      stopRecording();
+    };
+  }, [router]);
+
+  // Reusing the same media handling functions from the original component
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    setMediaFiles(prev => [...prev, ...imageFiles]);
   };
+
+  const handleCameraCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const track = stream.getVideoTracks()[0];
+      const imageCapture = new ImageCapture(track);
+      const blob = await imageCapture.takePhoto();
+      const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+      setMediaFiles(prev => [...prev, file]);
+      track.stop();
+    } catch (error) {
+      console.error('Erro ao capturar foto:', error);
+    }
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       audioChunksRef.current = [];
-  
+
       mediaRecorder.ondataavailable = (e) => {
         audioChunksRef.current.push(e.data);
       };
-  
+
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioFile = new File([audioBlob], `recording-${Date.now()}.wav`, { type: 'audio/wav' });
-        setMediaFiles((prev) => [...prev, audioFile]);
+        const audioFile = new File([audioBlob], 'gravacao.wav', { type: 'audio/wav' });
+        setMediaFiles(prev => [...prev, audioFile]);
+        setPreviewAudio(URL.createObjectURL(audioBlob));
       };
-  
+
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-  
+
       timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
+        setRecordingTime(prev => prev + 1);
       }, 1000);
     } catch (error) {
-      toast({
-        title: "Erro ao iniciar gravação",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Erro ao gravar áudio:', error);
     }
   };
-  
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       clearInterval(timerRef.current);
       setIsRecording(false);
     }
   };
-  const handleCameraCapture = () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast({
-        title: "Erro",
-        description: "Câmera não suportada pelo navegador",
-        variant: "destructive",
-      });
-      return;
-    }
-  
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((stream) => {
-        const video = document.createElement("video");
-        video.srcObject = stream;
-        video.play();
-  
-        const canvas = document.createElement("canvas");
-        const captureButton = document.createElement("button");
-        captureButton.textContent = "Capturar";
-        captureButton.style.position = "absolute";
-        captureButton.style.top = "10px";
-        captureButton.style.left = "10px";
-        captureButton.style.zIndex = "1000";
-        document.body.appendChild(video);
-        document.body.appendChild(captureButton);
-  
-        captureButton.addEventListener("click", () => {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            const file = new File([blob], "captura.jpg", { type: "image/jpeg" });
-            setMediaFiles((prev) => [...prev, file]);
-          });
-  
-          stream.getTracks().forEach((track) => track.stop());
-          document.body.removeChild(video);
-          document.body.removeChild(captureButton);
-        });
-      })
-      .catch((err) => {
-        toast({
-          title: "Erro",
-          description: "Não foi possível acessar a câmera: " + err.message,
-          variant: "destructive",
-        });
-      });
-  };
-  useEffect(() => {
-    const userString = localStorage.getItem('user');
-    if (!userString) {
-      toast({
-        title: "Erro de autenticação",
-        description: "Dados do usuário não encontrados",
-        variant: "destructive"
-      });
-      router.push('/');
-      return;
-    }
-    const user = JSON.parse(userString);
-    setUserData(user);
-  }, [router]);
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!location || locationError) {
-      toast({
-        title: "Erro de localização",
-        description: locationError || "Localização não disponível",
-        variant: "destructive"
-      });
+  
+    if (!cloudLocation) {
+      alert('Localização não disponível');
       return;
     }
-
+  
     if (!storyContent.trim() && mediaFiles.length === 0) {
-      toast({
-        title: "Conteúdo necessário",
-        description: "Adicione algum conteúdo ou mídia",
-        variant: "destructive"
-      });
+      alert('Adicione algum conteúdo ou mídia');
       return;
     }
-
-    const validCollaborators = collaborators.filter(c => c.trim());
-    if (validCollaborators.length < MIN_COLLABORATORS) {
-      toast({
-        title: "Colaboradores necessários",
-        description: "Adicione pelo menos um colaborador",
-        variant: "destructive"
-      });
+  
+    if (!collaborator.trim()) {
+      alert('Adicione um colaborador');
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
+    const currentUser = JSON.parse(localStorage.getItem('user')).username;
+  
+    // Adicionar colaboradores ao início do conteúdo
+    const contentWithCollaborators = `Colaboradores: ${currentUser}, ${collaborator}\n\n${storyContent}`;
+  
     const formData = new FormData();
-    formData.append('content', storyContent);
-    formData.append('location', JSON.stringify(location));
-    formData.append('collaborators', JSON.stringify(validCollaborators));
-    formData.append('ownerId', userData.id);
-
+    formData.append('content', contentWithCollaborators);
+    formData.append('latitude', cloudLocation.latitude);
+    formData.append('longitude', cloudLocation.longitude);
+    formData.append('type', 'COLLABORATIVE');
+  
     mediaFiles.forEach((file) => {
       formData.append('media', file);
     });
-
+  
+    console.log(formData);
+  
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/stories/collaborative`, {
+      const response = await fetch('http://localhost:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
         },
         body: formData
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao criar história colaborativa');
+  
+      if (response.ok) {
+        router.push('/map');
       }
-
-      toast({
-        title: "Sucesso",
-        description: "História colaborativa criada com sucesso"
-      });
-      router.push('/map');
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive"
-      });
+      console.error('Erro ao criar história:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const addCollaborator = () => setCollaborators(prev => [...prev, '']);
-  const removeCollaborator = (index) => setCollaborators(prev => prev.filter((_, i) => i !== index));
-  const updateCollaborator = (index, value) => setCollaborators(prev => prev.map((c, i) => i === index ? value : c));
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4 md:p-8">
-      <Toaster />
-      <Card className="max-w-2xl mx-auto bg-white shadow-md rounded-lg">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-4 md:p-8">
+      <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Céus Cruzados</CardTitle>
-          <CardDescription>Crie histórias colaborativas com outros jogadores</CardDescription>
+          <CardDescription>Crie uma história colaborativa com outro jogador</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <CollaboratorInput
-              collaborators={collaborators}
-              updateCollaborator={updateCollaborator}
-              removeCollaborator={removeCollaborator}
-              addCollaborator={addCollaborator}
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <Input
+              placeholder="Nome do colaborador"
+              value={collaborator}
+              onChange={(e) => setCollaborator(e.target.value)}
+              className="w-full"
             />
-            <div>
-              <CardTitle className="mb-4">Conteúdo da História</CardTitle>
-              <Textarea
-                value={storyContent}
-                onChange={(e) => setStoryContent(e.target.value)}
-                placeholder="Escreva aqui o conteúdo da sua história..."
-                className="w-full"
-              />
-            </div>
-            <MediaUploader
-              mediaFiles={mediaFiles}
-              setMediaFiles={setMediaFiles}
-              isRecording={isRecording}
-              recordingTime={recordingTime}
-              handleCameraCapture={handleCameraCapture}
-              startRecording={startRecording}
-              stopRecording={stopRecording}
+            
+            <Textarea
+              placeholder="Compartilhe algo interessante para as pessoas..."
+              value={storyContent}
+              onChange={(e) => setStoryContent(e.target.value)}
+              className="min-h-32 text-lg resize-none focus:ring-2 focus:ring-purple-500"
             />
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Enviar
-                  </>
-                )}
-              </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2"
+            >
+              <ImageIcon className="h-4 w-4" />
+              Adicionar Imagens
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCameraCapture}
+              className="flex items-center gap-2"
+            >
+              <Camera className="h-4 w-4" />
+              Tirar Foto
+            </Button>
+
+            <Button
+              type="button"
+              variant={isRecording ? "destructive" : "outline"}
+              onClick={isRecording ? stopRecording : startRecording}
+              className="flex items-center gap-2"
+            >
+              <Mic className="h-4 w-4" />
+              {isRecording ? `Gravando ${formatTime(recordingTime)}` : 'Gravar Áudio'}
+            </Button>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+          </div>
+
+          {mediaFiles.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {mediaFiles.map((file, index) => (
+                <div key={index} className="relative group">
+                  {file.type.startsWith('image/') ? (
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setSelectedImage(URL.createObjectURL(file))}
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative aspect-square rounded-lg bg-gray-100 flex flex-col items-center justify-center p-4">
+                      <Mic className="h-8 w-8 mb-2 text-purple-500" />
+                      <audio
+                        src={URL.createObjectURL(file)}
+                        controls
+                        className="w-full mt-2"
+                      />
+                    </div>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      const newFiles = [...mediaFiles];
+                      newFiles.splice(index, 1);
+                      setMediaFiles(newFiles);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-          </form>
+          )}
+
+          <Button
+            onClick={handleSubmit}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enviando História...
+              </>
+            ) : (
+              <>
+                <Users className="mr-2 h-4 w-4" />
+                Criar História Colaborativa
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!selectedImage}
+        onOpenChange={() => setSelectedImage(null)}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Visualização de Imagem</DialogTitle>
+          </DialogHeader>
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="Pré-visualização"
+              className="w-full h-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default CreateStoryPage;
+export default CreateCollabStoryPage;

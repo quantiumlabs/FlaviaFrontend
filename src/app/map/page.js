@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
-mapboxgl.accessToken = 'MAPBOX TOKEN';
+mapboxgl.accessToken = 'TOKEN';
 
 const MapPage = () => {
   const [userLocation, setUserLocation] = useState(null);
@@ -93,120 +93,250 @@ const MapPage = () => {
     const popupContainer = document.createElement('div');
     popupContainer.className = 'max-w-sm bg-white rounded-lg overflow-hidden shadow-lg';
   
-    // Header section with user info and timestamp
+    // Header section
     const header = document.createElement('div');
-    header.className = 'px-4 py-3 border-b border-gray-100 flex items-center gap-3';
-    
-    // User avatar (placeholder circle)
-    const avatar = document.createElement('div');
-    avatar.className = 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold';
-    avatar.textContent = story.user.username.charAt(0).toUpperCase();
-    
-    // User info container
-    const userInfo = document.createElement('div');
-    userInfo.className = 'flex-1';
-    
-    const username = document.createElement('p');
-    username.className = 'font-semibold text-gray-900';
-    username.textContent = story.user.username;
-    
+    header.className = 'px-4 py-3 border-b border-gray-100';
+  
+    // Story type badge
+    const typeBadge = document.createElement('span');
+    typeBadge.className = `inline-block px-2 py-1 text-xs font-semibold rounded-full mb-2 ${
+      story.type === 'OBJECT' ? 'bg-purple-100 text-purple-800' :
+      story.type === 'COLLABORATIVE' ? 'bg-blue-100 text-blue-800' :
+      'bg-orange-100 text-orange-800'
+    }`;
+    typeBadge.textContent = story.type === 'OBJECT' ? '🎯 Céus nas mãos' :
+                           story.type === 'COLLABORATIVE' ? '👥 Céus cruzados' :
+                           '📝 Colecionar névoas';
+    header.appendChild(typeBadge);
+  
+    // User(s) section - Now showing for all story types
+    const userContainer = document.createElement('div');
+    userContainer.className = 'mt-2';
+  
+    const userList = document.createElement('div');
+    userList.className = 'flex flex-wrap gap-2';
+  
+    // For collaborative stories, show all collaborators
+    if (story.type === 'COLLABORATIVE') {
+      const uniqueUsers = [...new Set([story.user.username, ...(story.collaborators || [])])];
+      uniqueUsers.forEach(username => {
+        const userChip = document.createElement('div');
+        userChip.className = 'flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1';
+  
+        const avatar = document.createElement('div');
+        avatar.className = 'w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold';
+        avatar.textContent = username.charAt(0).toUpperCase();
+  
+        const name = document.createElement('span');
+        name.className = 'text-xs font-medium text-gray-700';
+        name.textContent = username;
+  
+        userChip.appendChild(avatar);
+        userChip.appendChild(name);
+        userList.appendChild(userChip);
+      });
+    } else {
+      // For personal and object stories, show only the owner
+      const userChip = document.createElement('div');
+      userChip.className = 'flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1';
+  
+      const avatar = document.createElement('div');
+      avatar.className = 'w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold';
+      avatar.textContent = story.user.username.charAt(0).toUpperCase();
+  
+      const name = document.createElement('span');
+      name.className = 'text-xs font-medium text-gray-700';
+      name.textContent = story.user.username;
+  
+      userChip.appendChild(avatar);
+      userChip.appendChild(name);
+      userList.appendChild(userChip);
+    }
+  
+    userContainer.appendChild(userList);
+    header.appendChild(userContainer);
+  
+    // Timestamp
     const timestamp = document.createElement('p');
-    timestamp.className = 'text-xs text-gray-500';
-    const timeAgo = getTimeAgo(new Date(story.createdAt));
-    timestamp.textContent = timeAgo;
-    
-    userInfo.appendChild(username);
-    userInfo.appendChild(timestamp);
-    
-    header.appendChild(avatar);
-    header.appendChild(userInfo);
+    timestamp.className = 'text-xs text-gray-500 mt-2';
+    timestamp.textContent = getTimeAgo(new Date(story.createdAt));
+    header.appendChild(timestamp);
+  
     popupContainer.appendChild(header);
   
-    // Content section: check if the story is an object or personal
+    // Content section
     const content = document.createElement('div');
     content.className = 'px-4 py-3';
   
-    // Conditional for object-type stories
-    if (story.type === 'OBJECT') {
-      const title = document.createElement('h3');
-      title.className = 'font-semibold text-lg text-gray-900 mb-2';
-      title.textContent = ('Objeto deslocado');
-      content.appendChild(title);
-    } else {
-      const title = document.createElement('h3');
-      title.className = 'font-semibold text-lg text-gray-900 mb-2';
-      title.textContent = ('História');
-      content.appendChild(title);
-    }
+    const storyContent = document.createElement('p');
+    storyContent.className = 'text-gray-700 text-sm leading-relaxed whitespace-pre-wrap';
+    storyContent.textContent = story.content;
+    content.appendChild(storyContent);
   
-    const paragraph = document.createElement('p');
-    paragraph.textContent = story.content;
-    content.appendChild(paragraph);
-    
     popupContainer.appendChild(content);
-  
-    // Media section
+    // Media section with improved layout
     if (story.mediaUrls && story.mediaUrls.length > 0) {
       const mediaContainer = document.createElement('div');
-      mediaContainer.className = 'story-media';
+      mediaContainer.className = 'px-4 pb-3 grid gap-2';
+      if (story.mediaUrls.length > 1) {
+        mediaContainer.className += ' grid-cols-2';
+      }
   
       story.mediaUrls.forEach(url => {
         if (url.startsWith('data:image/')) {
-          const imgContainer = document.createElement('div');
-          imgContainer.className = 'relative';
-          
+          const imgWrapper = document.createElement('div');
+          imgWrapper.className = 'relative aspect-square rounded-lg overflow-hidden bg-gray-50';
+  
           const img = document.createElement('img');
           img.src = url;
           img.alt = 'Story media';
-          img.className = 'w-full h-auto transition-opacity duration-300 ease-in-out';
-          
-          // Add loading state
+          img.className = 'w-full h-full object-cover transition-all duration-300 hover:scale-105 cursor-pointer';
+  
+          // Loading state
           img.style.opacity = '0';
           const loader = document.createElement('div');
-          loader.className = 'absolute inset-0 flex items-center justify-center bg-gray-100';
+          loader.className = 'absolute inset-0 flex items-center justify-center';
           loader.innerHTML = `
             <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           `;
-          
-          imgContainer.appendChild(loader);
-          imgContainer.appendChild(img);
-          
+  
+          imgWrapper.appendChild(loader);
+          imgWrapper.appendChild(img);
+  
           img.onload = () => {
             img.style.opacity = '1';
             loader.remove();
           };
   
-          mediaContainer.appendChild(imgContainer);
+          // Add click event to open image in fullscreen
+          img.addEventListener('click', () => {
+            setSelectedImage(url);
+          });
+  
+          mediaContainer.appendChild(imgWrapper);
         } else if (url.startsWith('data:audio/')) {
-          const audioContainer = document.createElement('div');
-          audioContainer.className = 'px-4 py-2 bg-gray-50';
-          
+          const audioWrapper = document.createElement('div');
+          audioWrapper.className = 'bg-gray-50 rounded-lg p-3 col-span-2'; // Always full width
+  
+          // Audio player container
+          const playerContainer = document.createElement('div');
+          playerContainer.className = 'flex items-center gap-3 bg-white rounded-lg p-2 shadow-sm';
+  
+          // Play icon container
+          const playIconContainer = document.createElement('div');
+          playIconContainer.className = 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors';
+          playIconContainer.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+            </svg>
+          `;
+  
+          // Create audio element
           const audio = document.createElement('audio');
-          audio.controls = true;
-          audio.className = 'w-full h-8';
-          
+          audio.className = 'hidden';
+          audio.preload = 'auto';
+          audio.muted = true; // Muted to handle autoplay restrictions
           const source = document.createElement('source');
           source.src = url;
           source.type = url.includes('audio/mpeg') ? 'audio/mpeg' : 'audio/wav';
-          
           audio.appendChild(source);
-          audioContainer.appendChild(audio);
-          mediaContainer.appendChild(audioContainer);
+  
+          // Progress bar container
+          const progressContainer = document.createElement('div');
+          progressContainer.className = 'flex-1';
+  
+          // Progress bar
+          const progressBar = document.createElement('div');
+          progressBar.className = 'w-full bg-gray-200 rounded-full h-1.5 cursor-pointer';
+  
+          const progress = document.createElement('div');
+          progress.className = 'bg-blue-500 h-1.5 rounded-full transition-all duration-150';
+          progress.style.width = '0%';
+  
+          progressBar.appendChild(progress);
+          progressContainer.appendChild(progressBar);
+  
+          // Time display
+          const timeDisplay = document.createElement('div');
+          timeDisplay.className = 'text-xs text-gray-500 mt-1';
+          timeDisplay.textContent = '0:00 / 0:00';
+          progressContainer.appendChild(timeDisplay);
+  
+          // Add event listeners
+          let isPlaying = false;
+  
+          const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+          };
+  
+          playIconContainer.addEventListener('click', () => {
+            if (isPlaying) {
+              audio.pause();
+            } else {
+              audio.play();
+            }
+          });
+  
+          audio.addEventListener('play', () => {
+            isPlaying = true;
+            playIconContainer.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M13 8a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            `;
+          });
+  
+          audio.addEventListener('pause', () => {
+            isPlaying = false;
+            playIconContainer.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+            `;
+          });
+  
+          audio.addEventListener('timeupdate', () => {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = `${percent}%`;
+            timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+          });
+  
+          audio.addEventListener('loadedmetadata', () => {
+            timeDisplay.textContent = `0:00 / ${formatTime(audio.duration)}`;
+          });
+  
+          progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+          });
+  
+          // Assemble the player
+          playerContainer.appendChild(playIconContainer);
+          playerContainer.appendChild(progressContainer);
+          audioWrapper.appendChild(playerContainer);
+          audioWrapper.appendChild(audio);
+  
+          mediaContainer.appendChild(audioWrapper);
         }
       });
   
       popupContainer.appendChild(mediaContainer);
     }
   
-    // Add hover effect styles
+    // Add styles
     const style = document.createElement('style');
     style.textContent = `
       .mapboxgl-popup-content {
         padding: 0 !important;
         overflow: hidden !important;
         max-width: 320px !important;
+        border-radius: 12px !important;
       }
-      
+  
       .mapboxgl-popup-close-button {
         right: 8px !important;
         top: 8px !important;
@@ -215,35 +345,18 @@ const MapPage = () => {
         padding: 4px 8px !important;
         border-radius: 4px !important;
         z-index: 1 !important;
+        transition: all 0.2s ease !important;
       }
-      
+  
       .mapboxgl-popup-close-button:hover {
         background-color: rgba(0, 0, 0, 0.05) !important;
         color: #333 !important;
-      }
-      
-      .story-media img {
-        transition: transform 0.3s ease;
-      }
-      
-      .story-media img:hover {
-        transform: scale(1.02);
-      }
-      
-      audio::-webkit-media-controls-panel {
-        background-color: #f8f9fa;
-      }
-      
-      audio::-webkit-media-controls-play-button {
-        background-color: #4f46e5;
-        border-radius: 50%;
       }
     `;
     document.head.appendChild(style);
   
     return popupContainer;
   };
-  
 
   const getTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
@@ -268,7 +381,7 @@ const MapPage = () => {
     if (interval > 1) return interval + ' minutos atrás';
     if (interval === 1) return 'a um minuto';
     
-    return 'a poucos momentos atrás';
+    return 'Agora';
   };
 
   useEffect(() => {
@@ -374,7 +487,6 @@ const MapPage = () => {
       }
     };
   }, []);
-
   const fetchAndUpdateStories = useCallback(async () => {
     if (!userLocation || !map.current) return;
   
@@ -394,14 +506,33 @@ const MapPage = () => {
       );
       const data = await response.json();
   
-      setStories(data);
+      // Preprocess stories to extract collaborators and clean content
+      const processedStories = data.map(story => {
+        if (story.type === 'COLLABORATIVE') {
+          const contentParts = story.content.split('\r\n\r\n');
+          if (contentParts.length > 1) {
+            const collaboratorsLine = contentParts[0].trim();
+            if (collaboratorsLine.startsWith('Colaboradores:')) {
+              story.collaborators = collaboratorsLine.replace('Colaboradores:', '').trim().split(',').map(c => c.trim());
+              story.content = contentParts.slice(1).join('\r\n\r\n').trim();
+            }
+          }
+        } else {
+          story.collaborators = [];
+        }
+        return story;
+      });
+  
+      setStories(processedStories);
+  
+      console.log('Histórias recuperadas:', processedStories);
   
       Object.values(storyMarkers.current).forEach((marker) => marker.remove());
       storyMarkers.current = {};
   
-      data.forEach((story) => {
+      processedStories.forEach((story) => {
         if (!story.latitude || !story.longitude) {
-          console.warn('Story missing coordinates:', story.id);
+          console.log('Story missing coordinates:', story.id);
           return;
         }
   
@@ -414,8 +545,10 @@ const MapPage = () => {
           markerColor = '#FF5722'; // Red color for PERSONAL
         } else if (storyType === 'OBJECT') {
           markerColor = '#9B4DCA'; // Purple color for OBJECT
+        } else if (storyType === 'COLLABORATIVE') {
+          markerColor = '#3B82F6'; // Blue color for COLLABORATIVE
         } else {
-          markerColor = '#9333EA'; // Default to purple for COLLABORATIVE or other types
+          markerColor = '#9333EA'; // Default color
         }
   
         const el = document.createElement('div');
@@ -443,6 +576,9 @@ const MapPage = () => {
       });
     } catch (error) {
       console.error('Error fetching stories:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/');
     }
   }, [userLocation, router]);
 
@@ -508,9 +644,11 @@ const MapPage = () => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  if (localStorage.getItem('user') === 'admin') {
+                  if (localStorage.getItem('user').username === 'admin') {
                     router.push('/admin');
-                  }
+                  } else (
+                    console.log('error')
+                  )
                 }}
               >
                 <MoreVertical className="mr-2 h-4 w-4" />
