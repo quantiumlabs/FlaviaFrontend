@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Guia de Commits e Pull Requests
 
-## Getting Started
+Criei este guia para padronizarmos nossos commits e pull requests. Sigam estas orientações para mantermos nosso código organizado.
 
-First, run the development server:
+## ✨ Commits
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Formato que quero que usem:
+```
+tipo: descrição curta e clara
+
+Por que fez essa alteração? (opcional, mas recomendado)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Tipos de commit que usaremos:
+- `feat`: Nova funcionalidade 
+- `fix`: Correção de bug
+- `docs`: Documentação
+- `refactor`: Refatoração
+- `test`: Testes
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Exemplos práticos:
+```
+feat: adiciona tela de login
+- Implementei formulário com email e senha
+- Adicionei validações básicas
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+fix: corrige erro no cálculo do carrinho
+- O desconto não estava sendo aplicado corretamente
+```
 
-## Learn More
+## 🔄 Pull Requests
 
-To learn more about Next.js, take a look at the following resources:
+### Como fazer:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Antes de começar:**
+   - Me avise qual feature vai fazer
+   - Atualize sua main: 
+   ```bash
+   git checkout main
+   git pull
+   ```
+   - Crie sua branch: `git checkout -b feature/sua-feature`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Durante o desenvolvimento:**
+   - Faça commits frequentes
+   - Se tiver dúvidas, me chame
+   - Teste bem antes de subir
 
-## Deploy on Vercel
+3. **Para criar o PR:**
+   - Título: Mesmo formato dos commits
+   - Descrição: 
+   ```
+   O que fez?
+   - Liste as principais alterações
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Como testar?
+   1. Passo a passo do teste
+   2. O que devemos ver funcionando
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ⚠️ Erros comuns que quero evitar:
+
+- ❌ "ajustes diversos", "correções"
+- ❌ Vários bugs diferentes em um commit
+- ❌ PR sem descrição do que foi feito
+- ❌ Código não testado
+
+## 🎯 Processo ideal:
+
+1. Avise que vai começar a feature
+2. Crie a branch
+3. Faça commits pequenos e claros
+4. Teste tudo
+5. Abra o PR e me marque
+6. Aguarde meu review
+7. Faça os ajustes se necessário
+
+TESTAR ANTES DE COMITAR
