@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Loader2, Mic, Trash, Image as ImageIcon } from 'lucide-react';
+import { Camera, Loader2, Mic, Trash, Image as ImageIcon, X, Square, Play, Pause } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SkiesInHandsPage = () => {
   const [capturedImage, setCapturedImage] = useState(null);
@@ -21,11 +22,20 @@ const SkiesInHandsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [objectContent, setObjectContent] = useState('');
   const [cloudLocation, setCloudLocation] = useState(null);
-
+  
+  // New audio recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioURL, setAudioURL] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
 
   const router = useRouter();
 
@@ -47,7 +57,75 @@ const SkiesInHandsPage = () => {
         (error) => console.error('Erro ao obter localização:', error),
       );
     }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [router]);
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioURL(url);
+        const file = new File([blob], 'recorded-audio.webm', { type: 'audio/webm' });
+        setAudioFile(file);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setIsPaused(false);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      if (!isPaused) {
+        mediaRecorderRef.current.pause();
+        clearInterval(timerRef.current);
+      } else {
+        mediaRecorderRef.current.resume();
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+      }
+      setIsPaused(!isPaused);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      clearInterval(timerRef.current);
+      setIsRecording(false);
+      setRecordingTime(0);
+    }
+  };
 
   const handleStartCamera = async () => {
     try {
@@ -73,7 +151,6 @@ const SkiesInHandsPage = () => {
       canvas.toBlob((blob) => {
         const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
         setCapturedImage(file);
-        // Stop video stream after capturing
         if (videoRef.current.srcObject) {
           videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
         }
@@ -93,13 +170,17 @@ const SkiesInHandsPage = () => {
     const file = e.target.files[0];
     if (file) {
       setAudioFile(file);
+      setAudioURL(URL.createObjectURL(file));
     }
   };
 
   const removeMedia = (type) => {
     if (type === 'captured') setCapturedImage(null);
     if (type === 'uploaded') setUploadedImage(null);
-    if (type === 'audio') setAudioFile(null);
+    if (type === 'audio') {
+      setAudioFile(null);
+      setAudioURL(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -121,7 +202,7 @@ const SkiesInHandsPage = () => {
       formData.append('content', objectContent);
       formData.append('latitude', cloudLocation.latitude);
       formData.append('longitude', cloudLocation.longitude);
-      formData.append('type', 'OBJECT')
+      formData.append('type', 'OBJECT');
       if (capturedImage) formData.append('media', capturedImage);
       if (uploadedImage) formData.append('media', uploadedImage);
       if (audioFile) formData.append('media', audioFile);
@@ -146,46 +227,82 @@ const SkiesInHandsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4 md:p-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Céus nas Mãos</CardTitle>
-          <CardDescription>Desloque um objeto e registre sua história</CardDescription>
+    <div className="min-h-screen bg-[url('/object.png')] bg-cover bg-center bg-no-repeat p-4 md:p-8">
+      <Card className="max-w-2xl mx-auto shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-purple-800">Céus nas Mãos</CardTitle>
+          <CardDescription className="text-purple-600">
+            Desloque um objeto e registre sua história
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Input
             placeholder="Digite o nome do objeto deslocado"
             value={objectContent}
             onChange={(e) => setObjectContent(e.target.value)}
+            className="text-lg p-6 border-2 border-purple-100 focus:border-purple-300"
           />
 
-          <div className="flex flex-col items-center gap-4">
-            {!capturedImage && (
-              <>
-                <Button onClick={handleStartCamera} disabled={isCapturing}>
-                  Iniciar Câmera
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Camera Section */}
+            <div className="space-y-4">
+              {!isCapturing && !capturedImage && (
+                <Button
+                  onClick={handleStartCamera}
+                  className="w-full h-40 border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Camera className="h-8 w-8 text-purple-500" />
+                    <span className="text-purple-700">Iniciar Câmera</span>
+                  </div>
                 </Button>
-                <video ref={videoRef} className="w-full max-w-md rounded-lg" />
-                <Button onClick={handleCapturePhoto} disabled={!isCapturing}>
-                  Capturar Foto
-                </Button>
-              </>
-            )}
+              )}
 
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2"
-            >
-              <ImageIcon className="h-5 w-5" />
-              Adicionar Foto
-            </Button>
-            <Button
-              onClick={() => audioInputRef.current?.click()}
-              className="flex items-center gap-2"
-            >
-              <Mic className="h-5 w-5" />
-              Adicionar Áudio
-            </Button>
+              {isCapturing && (
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    className="w-full rounded-lg border-2 border-purple-300"
+                  />
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                    <Button
+                      onClick={handleCapturePhoto}
+                      className="bg-purple-600 hover:bg-purple-500"
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capturar
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (videoRef.current?.srcObject) {
+                          videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+                        }
+                        setIsCapturing(false);
+                      }}
+                      variant="outline"
+                      className="bg-white"
+                    >
+                      <X className="h-5 w-5 mr-2" />
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Upload and Recording Buttons */}
+            <div className="space-y-4">
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-full border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <ImageIcon className="h-6 w-6 text-purple-500" />
+                  <span className="text-purple-700">Adicionar Foto</span>
+                </div>
+              </Button>
+
+            </div>
           </div>
 
           <input
@@ -195,72 +312,62 @@ const SkiesInHandsPage = () => {
             accept="image/*"
             className="hidden"
           />
-          <input
-            type="file"
-            ref={audioInputRef}
-            onChange={handleAudioUpload}
-            accept="audio/*"
-            className="hidden"
-          />
 
-          {capturedImage && (
-            <div className="relative">
-              <img
-                src={URL.createObjectURL(capturedImage)}
-                alt="Foto capturada"
-                className="w-full max-w-md rounded-lg shadow-lg"
-              />
-              <Button
-                onClick={() => removeMedia('captured')}
-                className="absolute top-2 right-2 p-2 rounded-full bg-red-600 text-white"
-              >
-                <Trash className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
+          {/* Preview Section */}
+          <div className="space-y-4">
+            {(capturedImage || uploadedImage || audioFile) && (
+              <Alert className="bg-purple-50 border-purple-200">
+                <AlertDescription>
+                  Mídia adicionada com sucesso! Revise abaixo:
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {uploadedImage && (
-            <div className="relative">
-              <img
-                src={URL.createObjectURL(uploadedImage)}
-                alt="Foto enviada"
-                className="w-full max-w-md rounded-lg shadow-lg"
-              />
-              <Button
-                onClick={() => removeMedia('uploaded')}
-                className="absolute top-2 right-2 p-2 rounded-full bg-red-600 text-white"
-              >
-                <Trash className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {capturedImage && (
+                <div className="relative group">
+                  <img
+                    src={URL.createObjectURL(capturedImage)}
+                    alt="Foto capturada"
+                    className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
+                  />
+                  <Button
+                    onClick={() => removeMedia('captured')}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
 
-          {audioFile && (
-            <div className="relative">
-              <audio
-                src={URL.createObjectURL(audioFile)}
-                controls
-                className="w-full"
-              />
-              <Button
-                onClick={() => removeMedia('audio')}
-                className="absolute top-2 right-2 p-2 rounded-full bg-red-600 text-white"
-              >
-                <Trash className="h-5 w-5" />
-              </Button>
+              {uploadedImage && (
+                <div className="relative group">
+                  <img
+                    src={URL.createObjectURL(uploadedImage)}
+                    alt="Foto enviada"
+                    className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
+                  />
+                  <Button
+                    onClick={() => removeMedia('uploaded')}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="w-full"
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white py-6 text-lg font-medium transition-colors"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Registrando Objeto...
-              </>
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Registrando Objeto...</span>
+              </div>
             ) : (
               'Registrar Objeto Deslocado'
             )}
