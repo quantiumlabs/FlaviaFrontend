@@ -4,62 +4,99 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { MoreVertical, LogOut, Trophy, Users, Cloud, Target, Apple} from 'lucide-react';
+import MapProfileSection from '@/components/ui/MapProfileSection';
+import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
+import TutorialDialog from '@/components/ui/TutorialDialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  MoreVertical, LogOut, Trophy, Users, Cloud, 
+  Target, Apple, Map as MapIcon, Menu, X, ChevronRight
+} from 'lucide-react';
 
-mapboxgl.accessToken = 'TOKEN';
 
 const MapPage = () => {
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [stories, setStories] = useState([]);
   const [user, setUser] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [selectedChallenge, setSelectedChallenge] = useState(null); // Add this line
   const router = useRouter();
   const mapContainer = useRef(null);
   const map = useRef(null);
   const geolocateControl = useRef(null);
   const storyMarkers = useRef({});
+  const [showChallenges, setShowChallenges] = useState(false);
+  const [selectedStory, setSelectedStory] = useState(null);
+  const [showModificationDialog, setShowModificationDialog] = useState(false);
   const [challenges] = useState([
     {
       id: 'collect-mist',
       title: 'Colecionar Névoas',
       description: 'Compartilhe suas histórias pelo mundo',
       icon: Cloud,
-      route: '/story/create'
+      route: '/story/create',
+      color: 'from-orange-500 to-red-400'
+    
     },
     {
       id: 'crossed-skies',
       title: 'Céus Cruzados',
-      description: 'Crie histórias colaborativas com outros jogadores',
+      description: 'Crie histórias colaborativas',
       icon: Users,
-      route: '/story/create-collab'
+      route: '/story/create-collab',
+      color: 'from-blue-500 to-cyan-400'
+      
     },
     {
       id: 'Skies-In-Hands',
       title: 'Céus nas mãos',
-      description: 'Mova um objeto e registre sua nova localização',
+      description: 'Mova um objeto e registre',
       icon: Apple,
-      route: '/story/move-object'
+      route: '/story/move-object',
+      color: 'from-purple-500 to-pink-400'
     },
     {
-      id: 'future-challenge-2',
-      title: 'Desafio Futuro 2',
-      description: 'Em breve',
+      id: 'Tecer-nuvens',
+      title: 'Tecer nuvens',
+      description: 'Complemente outras histórias',
       icon: Target,
-      locked: true
+      color: 'from-blue-500 to-purple-500',
+      action: () => {
+        if (stories.length === 0) {
+          window.alert('No stories available to modify. Try moving to a different location!');
+          return;
+        }
+        const personalStories = stories.filter(s => !s.type || s.type === 'PERSONAL');
+        if (personalStories.length === 0) {
+          window.alert('No personal stories available to modify in this area.');
+          return;
+        }
+        const randomStory = personalStories[Math.floor(Math.random() * personalStories.length)];
+        setSelectedStory(randomStory);
+        setShowModificationDialog(true);
+      },
     }
   ]);
+
+  mapboxgl.accessToken = 'TOKEN';
+
+  const handleChallengeSelect = (challenge) => {
+    setSelectedChallenge(challenge);
+    setShowChallenges(false);
+    if (!challenge.locked && challenge.action) {
+      challenge.action();
+    } else if (!challenge.locked && challenge.route) {
+      router.push(challenge.route);
+    }
+  };
 
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -75,6 +112,7 @@ const MapPage = () => {
             break;
           case error.POSITION_UNAVAILABLE:
             console.error("Localização indisponível.");
+            window.alert("Sua localização está indisponível. Por favor, tente recarregar a pagina ou verifique se o GPS está ativado.");
             break;
           case error.TIMEOUT:
             console.error("Tempo para obter a localização expirou.");
@@ -109,14 +147,15 @@ const MapPage = () => {
                            '📝 Colecionar névoas';
     header.appendChild(typeBadge);
   
-    // User(s) section - Now showing for all story types
+    // User(s) section
     const userContainer = document.createElement('div');
     userContainer.className = 'mt-2';
   
     const userList = document.createElement('div');
     userList.className = 'flex flex-wrap gap-2';
   
-    // For collaborative stories, show all collaborators
+    
+    // Handle different user displays based on story type
     if (story.type === 'COLLABORATIVE') {
       const uniqueUsers = [...new Set([story.user.username, ...(story.collaborators || [])])];
       uniqueUsers.forEach(username => {
@@ -136,7 +175,6 @@ const MapPage = () => {
         userList.appendChild(userChip);
       });
     } else {
-      // For personal and object stories, show only the owner
       const userChip = document.createElement('div');
       userChip.className = 'flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1';
   
@@ -174,7 +212,31 @@ const MapPage = () => {
     content.appendChild(storyContent);
   
     popupContainer.appendChild(content);
-    // Media section with improved layout
+
+    if (!story.type || story.type === 'PERSONAL') {
+      const modifyButton = document.createElement('button');
+      modifyButton.className = 'mt-3 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1';
+      modifyButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+        Tecer uma nova versão
+      `;
+      modifyButton.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedStory(story);
+        setShowModificationDialog(true);
+        map.current.getCanvas().style.cursor = '';
+        const popup = document.getElementsByClassName('mapboxgl-popup');
+        if (popup.length) {
+          popup[0].remove();
+        }
+      };
+      content.appendChild(modifyButton);
+    }
+  
+    // Media section
     if (story.mediaUrls && story.mediaUrls.length > 0) {
       const mediaContainer = document.createElement('div');
       mediaContainer.className = 'px-4 pb-3 grid gap-2';
@@ -203,124 +265,222 @@ const MapPage = () => {
           imgWrapper.appendChild(loader);
           imgWrapper.appendChild(img);
   
+          // Add click handler for image expansion
+          img.onclick = (e) => {
+            e.stopPropagation(); // Prevent popup from closing
+  
+            // Create modal container
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4';
+            modal.style.animation = 'fadeIn 0.2s ease-out';
+  
+            // Create expanded image
+            const expandedImg = document.createElement('img');
+            expandedImg.src = url;
+            expandedImg.className = 'max-h-[90vh] max-w-[90vw] object-contain rounded-lg';
+            expandedImg.style.animation = 'zoomIn 0.3s ease-out';
+  
+            // Create close button
+            const closeButton = document.createElement('button');
+            closeButton.className = 'absolute top-4 right-4 text-white p-2 rounded-full hover:bg-white hover:bg-opacity-20';
+            closeButton.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            `;
+  
+            // Add click handlers
+            const closeModal = () => {
+              modal.style.animation = 'fadeOut 0.2s ease-out';
+              expandedImg.style.animation = 'zoomOut 0.2s ease-out';
+              setTimeout(() => modal.remove(), 200);
+            };
+  
+            closeButton.onclick = (e) => {
+              e.stopPropagation();
+              closeModal();
+            };
+  
+            modal.onclick = closeModal;
+  
+            // Prevent click on image from closing modal
+            expandedImg.onclick = (e) => e.stopPropagation();
+  
+            // Add keyboard support for closing
+            const handleEscape = (e) => {
+              if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', handleEscape);
+              }
+            };
+            document.addEventListener('keydown', handleEscape);
+  
+            // Assemble modal
+            modal.appendChild(expandedImg);
+            modal.appendChild(closeButton);
+            document.body.appendChild(modal);
+          };
+  
           img.onload = () => {
             img.style.opacity = '1';
             loader.remove();
           };
   
-          // Add click event to open image in fullscreen
-          img.addEventListener('click', () => {
-            setSelectedImage(url);
-          });
-  
           mediaContainer.appendChild(imgWrapper);
         } else if (url.startsWith('data:audio/')) {
-          const audioWrapper = document.createElement('div');
-          audioWrapper.className = 'bg-gray-50 rounded-lg p-3 col-span-2'; // Always full width
+          const createAudioPlayer = (url) => {
+            const audioWrapper = document.createElement('div');
+            audioWrapper.className = 'bg-gray-50 rounded-lg p-3 col-span-2';
   
-          // Audio player container
-          const playerContainer = document.createElement('div');
-          playerContainer.className = 'flex items-center gap-3 bg-white rounded-lg p-2 shadow-sm';
+            const playerContainer = document.createElement('div');
+            playerContainer.className = 'flex items-center gap-3 bg-white rounded-lg p-2.5 shadow-sm';
   
-          // Play icon container
-          const playIconContainer = document.createElement('div');
-          playIconContainer.className = 'w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors';
-          playIconContainer.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-            </svg>
-          `;
-  
-          // Create audio element
-          const audio = document.createElement('audio');
-          audio.className = 'hidden';
-          audio.preload = 'auto';
-          audio.muted = true; // Muted to handle autoplay restrictions
-          const source = document.createElement('source');
-          source.src = url;
-          source.type = url.includes('audio/mpeg') ? 'audio/mpeg' : 'audio/wav';
-          audio.appendChild(source);
-  
-          // Progress bar container
-          const progressContainer = document.createElement('div');
-          progressContainer.className = 'flex-1';
-  
-          // Progress bar
-          const progressBar = document.createElement('div');
-          progressBar.className = 'w-full bg-gray-200 rounded-full h-1.5 cursor-pointer';
-  
-          const progress = document.createElement('div');
-          progress.className = 'bg-blue-500 h-1.5 rounded-full transition-all duration-150';
-          progress.style.width = '0%';
-  
-          progressBar.appendChild(progress);
-          progressContainer.appendChild(progressBar);
-  
-          // Time display
-          const timeDisplay = document.createElement('div');
-          timeDisplay.className = 'text-xs text-gray-500 mt-1';
-          timeDisplay.textContent = '0:00 / 0:00';
-          progressContainer.appendChild(timeDisplay);
-  
-          // Add event listeners
-          let isPlaying = false;
-  
-          const formatTime = (seconds) => {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = Math.floor(seconds % 60);
-            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-          };
-  
-          playIconContainer.addEventListener('click', () => {
-            if (isPlaying) {
-              audio.pause();
-            } else {
-              audio.play();
-            }
-          });
-  
-          audio.addEventListener('play', () => {
-            isPlaying = true;
-            playIconContainer.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                <path fill-rule="evenodd" d="M13 8a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-            `;
-          });
-  
-          audio.addEventListener('pause', () => {
-            isPlaying = false;
-            playIconContainer.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+            const playButton = document.createElement('button');
+            playButton.className = 'w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95';
+            playButton.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
               </svg>
             `;
-          });
   
-          audio.addEventListener('timeupdate', () => {
-            const percent = (audio.currentTime / audio.duration) * 100;
-            progress.style.width = `${percent}%`;
-            timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
-          });
+            const audio = document.createElement('audio');
+            audio.preload = 'metadata';
+            
+            const mp3Source = document.createElement('source');
+            mp3Source.src = url;
+            mp3Source.type = 'audio/mpeg';
+            
+            const m4aSource = document.createElement('source');
+            m4aSource.src = url.replace('.mp3', '.m4a');
+            m4aSource.type = 'audio/mp4';
+            
+            audio.appendChild(mp3Source);
+            audio.appendChild(m4aSource);
   
-          audio.addEventListener('loadedmetadata', () => {
-            timeDisplay.textContent = `0:00 / ${formatTime(audio.duration)}`;
-          });
+            const progressContainer = document.createElement('div');
+            progressContainer.className = 'flex-1 flex flex-col gap-1';
   
-          progressBar.addEventListener('click', (e) => {
-            const rect = progressBar.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            audio.currentTime = percent * audio.duration;
-          });
+            const waveContainer = document.createElement('div');
+            waveContainer.className = 'relative w-full h-8 bg-gray-100 rounded-lg overflow-hidden';
   
-          // Assemble the player
-          playerContainer.appendChild(playIconContainer);
-          playerContainer.appendChild(progressContainer);
-          audioWrapper.appendChild(playerContainer);
-          audioWrapper.appendChild(audio);
+            const progressBar = document.createElement('div');
+            progressBar.className = 'absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 origin-left scale-x-0 transition-transform duration-150';
+            progressBar.style.transform = 'scaleX(0)';
   
-          mediaContainer.appendChild(audioWrapper);
+            const wavePattern = document.createElement('div');
+            wavePattern.className = 'absolute inset-0 opacity-25';
+            wavePattern.style.backgroundImage = `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q10 5, 20 20 T40 20' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E")`;
+            wavePattern.style.backgroundSize = '40px 40px';
+  
+            const timeDisplay = document.createElement('div');
+            timeDisplay.className = 'flex items-center justify-between text-xs font-medium';
+            
+            const currentTime = document.createElement('span');
+            currentTime.className = 'text-blue-600';
+            currentTime.textContent = '0:00';
+            
+            const duration = document.createElement('span');
+            duration.className = 'text-gray-500';
+            duration.textContent = '0:00';
+            
+            timeDisplay.appendChild(currentTime);
+            timeDisplay.appendChild(duration);
+  
+            let isPlaying = false;
+  
+            const formatTime = (seconds) => {
+              const minutes = Math.floor(seconds / 60);
+              const remainingSeconds = Math.floor(seconds % 60);
+              return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            };
+  
+            const updatePlayButton = (playing) => {
+              playButton.innerHTML = playing ? `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              ` : `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                </svg>
+              `;
+            };
+  
+            const setupAudio = () => {
+              audio.load();
+              if (audio.paused) {
+                audio.muted = true;
+                audio.play().then(() => {
+                  audio.pause();
+                  audio.muted = false;
+                  audio.currentTime = 0;
+                }).catch(() => {
+                  console.log('Audio playback failed');
+                });
+              }
+            };
+  
+            playButton.addEventListener('click', () => {
+              if (isPlaying) {
+                audio.pause();
+              } else {
+                audio.play().catch((error) => {
+                  console.error('Playback failed:', error);
+                  setupAudio();
+                });
+              }
+            });
+  
+            audio.addEventListener('play', () => {
+              isPlaying = true;
+              updatePlayButton(true);
+            });
+  
+            audio.addEventListener('pause', () => {
+              isPlaying = false;
+              updatePlayButton(false);
+            });
+  
+            audio.addEventListener('timeupdate', () => {
+              const percent = (audio.currentTime / audio.duration) * 100;
+              progressBar.style.transform = `scaleX(${percent / 100})`;
+              currentTime.textContent = formatTime(audio.currentTime);
+            });
+  
+            audio.addEventListener('loadedmetadata', () => {
+              duration.textContent = formatTime(audio.duration);
+            });
+  
+            audio.addEventListener('ended', () => {
+              isPlaying = false;
+              updatePlayButton(false);
+              progressBar.style.transform = 'scaleX(0)';
+            });
+  
+            waveContainer.addEventListener('click', (e) => {
+              const rect = waveContainer.getBoundingClientRect();
+              const percent = (e.clientX - rect.left) / rect.width;
+              audio.currentTime = percent * audio.duration;
+            });
+  
+            waveContainer.appendChild(progressBar);
+            waveContainer.appendChild(wavePattern);
+            
+            progressContainer.appendChild(waveContainer);
+            progressContainer.appendChild(timeDisplay);
+            
+            playerContainer.appendChild(playButton);
+            playerContainer.appendChild(progressContainer);
+            
+            audioWrapper.appendChild(playerContainer);
+            audioWrapper.appendChild(audio);
+  
+            setupAudio();
+  
+            return audioWrapper;
+          };
+  
+          mediaContainer.appendChild(createAudioPlayer(url));
         }
       });
   
@@ -352,12 +512,47 @@ const MapPage = () => {
         background-color: rgba(0, 0, 0, 0.05) !important;
         color: #333 !important;
       }
+  
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+  
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+  
+      @keyframes zoomIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+  
+      @keyframes zoomOut {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+      }
+  
+      .story-media img {
+        animation: fadeIn 0.3s ease-in-out;
+      }
     `;
     document.head.appendChild(style);
   
     return popupContainer;
   };
-
   const getTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
     
@@ -383,6 +578,14 @@ const MapPage = () => {
     
     return 'Agora';
   };
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+      localStorage.setItem('hasSeenTutorial', 'true');
+    }
+  }, []);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -578,7 +781,8 @@ const MapPage = () => {
       console.error('Error fetching stories:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      router.push('/');
+      window.alert('Sua sessão expirou, por favor faça login novamente.');
+      router.push('/auth');
     }
   }, [userLocation, router]);
 
@@ -604,7 +808,6 @@ const MapPage = () => {
   useEffect(() => {
     if (localStorage.getItem('isFirstLogin') === 'true') {
       router.push('/story/create');
-      return;
     }
 
     const userData = localStorage.getItem('user');
@@ -612,84 +815,89 @@ const MapPage = () => {
       setUser(JSON.parse(userData));
     }
   }, [router]);
-
+  
   return (
     <div className="relative h-screen h-[100dvh]">
       <div ref={mapContainer} className="absolute inset-0" />
       
-      {locationError && (
-        <Card className="absolute top-4 left-4 right-4 z-20">
-          <CardContent className="p-4">
-            <p className="text-red-500">{locationError}</p>
-          </CardContent>
-        </Card>
-      )}
-      
-      <Card className="absolute top-4 left-4 z-10">
-        <CardContent className="p-4 flex items-center gap-4">
-          <div className="flex-1">
-            <div className="font-bold">{user?.username || 'Player'}</div>
-            <div className="text-sm text-gray-500">Online</div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
+      {/* Modern floating header with glass effect */}
+      <div className="absolute top-0 left-2 p-4 z-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button 
+                variant="secondary" 
+                className="bg-white/60 backdrop-blur-md shadow-lg hover:bg-white/90 transition-all duration-300"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  if (localStorage.getItem('user').username === 'admin') {
-                    router.push('/admin');
-                  } else (
-                    console.log('error')
-                  )
-                }}
+              <Button
+                variant="secondary"
+                className="bg-white/50 backdrop-blur-md shadow-lg hover:bg-white/90 transition-all duration-300"
+                onClick={() => setShowChallenges(true)}
               >
-                <MoreVertical className="mr-2 h-4 w-4" />
-                Painel Admin
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardContent>
-      </Card>
-
-      <div className="absolute bottom-safe-area right-4 z-10 flex flex-col gap-4 pb-4 my-6">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="w-full md:w-auto">
-              <Trophy className="mr-2 h-4 w-4" />
-              Aceita um desafio?
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Escolha um desafio</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {challenges.map((challenge) => (
-              <DropdownMenuItem
-                key={challenge.id}
-                onClick={() => !challenge.locked && router.push(challenge.route)}
-                disabled={challenge.locked}
-                className="flex items-center"
-              >
-                <challenge.icon className="mr-2 h-4 w-4" />
-                <div className="flex flex-col">
-                  <span>{challenge.title}</span>
-                  <span className="text-xs text-gray-500">{challenge.description}</span>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                Aceita um desafio?
+              </Button>
+            </div>
+            
+          </div>
+        </div>
       </div>
+
+      {/* Side Menu with glass effect */}
+      <MapProfileSection user={user} onLogout={handleLogout} isOpen={isMenuOpen} />
+
+
+      {/* Challenges Dialog */}
+      <Dialog open={showChallenges} onOpenChange={setShowChallenges}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Desafios Disponíveis</DialogTitle>
+            <DialogDescription>
+              Escolha um desafio para começar sua jornada
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {challenges.map((challenge) => (
+              <button
+                key={challenge.id}
+                onClick={() => handleChallengeSelect(challenge)}
+                className={`relative group overflow-hidden rounded-lg p-4 transition-all duration-300
+                  ${challenge.locked ? 'opacity-60 cursor-not-allowed' : 'hover:scale-102 cursor-pointer'}
+                `}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-r ${challenge.color} opacity-10 group-hover:opacity-20 transition-opacity duration-300`} />
+                <div className="relative flex items-center gap-4">
+                  <div className={`p-3 rounded-full bg-gradient-to-r ${challenge.color}`}>
+                    <challenge.icon className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-semibold">{challenge.title}</h3>
+                    <p className="text-sm text-gray-500">{challenge.description}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <StoryModificationDialog 
+        story={selectedStory}
+        isOpen={showModificationDialog}
+        onClose={() => {
+          setShowModificationDialog(false);
+          setSelectedStory(null);
+        }}
+      />
+      <TutorialDialog 
+        isOpen={showTutorial} 
+        onClose={() => setShowTutorial(false)} 
+      />
     </div>
   );
 };
-
 
 export default MapPage;

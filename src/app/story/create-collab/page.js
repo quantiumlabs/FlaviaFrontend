@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Mic, X, Image as ImageIcon, Maximize2, Send, Loader2, Users } from 'lucide-react';
+import { Camera, Mic, X, Image as ImageIcon, Maximize2, Send, Loader2, Users, Square, Pause, Play } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -25,12 +26,13 @@ const CreateCollabStoryPage = () => {
   const [storyContent, setStoryContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [previewAudio, setPreviewAudio] = useState(null);
   const [cloudLocation, setCloudLocation] = useState(null);
   const [collaborator, setCollaborator] = useState('');
+  const [showMediaAlert, setShowMediaAlert] = useState(false);
 
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -63,11 +65,14 @@ const CreateCollabStoryPage = () => {
     };
   }, [router]);
 
-  // Reusing the same media handling functions from the original component
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    setMediaFiles(prev => [...prev, ...imageFiles]);
+    if (imageFiles.length > 0) {
+      setMediaFiles(prev => [...prev, ...imageFiles]);
+      setShowMediaAlert(true);
+      setTimeout(() => setShowMediaAlert(false), 3000);
+    }
   };
 
   const handleCameraCapture = async () => {
@@ -78,6 +83,8 @@ const CreateCollabStoryPage = () => {
       const blob = await imageCapture.takePhoto();
       const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
       setMediaFiles(prev => [...prev, file]);
+      setShowMediaAlert(true);
+      setTimeout(() => setShowMediaAlert(false), 3000);
       track.stop();
     } catch (error) {
       console.error('Erro ao capturar foto:', error);
@@ -91,19 +98,23 @@ const CreateCollabStoryPage = () => {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const audioFile = new File([audioBlob], 'gravacao.wav', { type: 'audio/wav' });
         setMediaFiles(prev => [...prev, audioFile]);
-        setPreviewAudio(URL.createObjectURL(audioBlob));
+        setShowMediaAlert(true);
+        setTimeout(() => setShowMediaAlert(false), 3000);
       };
 
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
+      setIsPaused(false);
       setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
@@ -114,12 +125,28 @@ const CreateCollabStoryPage = () => {
     }
   };
 
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      if (!isPaused) {
+        mediaRecorderRef.current.pause();
+        clearInterval(timerRef.current);
+      } else {
+        mediaRecorderRef.current.resume();
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+      }
+      setIsPaused(!isPaused);
+    }
+  };
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       clearInterval(timerRef.current);
       setIsRecording(false);
+      setIsPaused(false);
     }
   };
 
@@ -128,44 +155,39 @@ const CreateCollabStoryPage = () => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!cloudLocation) {
       alert('Localização não disponível');
       return;
     }
-  
+
     if (!storyContent.trim() && mediaFiles.length === 0) {
       alert('Adicione algum conteúdo ou mídia');
       return;
     }
-  
+
     if (!collaborator.trim()) {
       alert('Adicione um colaborador');
       return;
     }
-  
+
     setIsSubmitting(true);
-  
     const currentUser = JSON.parse(localStorage.getItem('user')).username;
-  
-    // Adicionar colaboradores ao início do conteúdo
     const contentWithCollaborators = `Colaboradores: ${currentUser}, ${collaborator}\n\n${storyContent}`;
-  
+
     const formData = new FormData();
     formData.append('content', contentWithCollaborators);
     formData.append('latitude', cloudLocation.latitude);
     formData.append('longitude', cloudLocation.longitude);
     formData.append('type', 'COLLABORATIVE');
-  
+
     mediaFiles.forEach((file) => {
       formData.append('media', file);
     });
-  
-    console.log(formData);
-  
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5522/stories', {
@@ -175,7 +197,7 @@ const CreateCollabStoryPage = () => {
         },
         body: formData
       });
-  
+
       if (response.ok) {
         router.push('/map');
       }
@@ -187,93 +209,124 @@ const CreateCollabStoryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white p-4 md:p-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Céus Cruzados</CardTitle>
-          <CardDescription>Crie uma história colaborativa com outro jogador</CardDescription>
+    <div className="min-h-screen bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat md:p-8">
+      <Card className="max-w-2xl mx-auto shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-blue-800">Céus Cruzados</CardTitle>
+          <CardDescription className="text-blue-600">Crie uma história colaborativa com outro jogador</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <Input
-              placeholder="Nome do colaborador"
-              value={collaborator}
-              onChange={(e) => setCollaborator(e.target.value)}
-              className="w-full"
-            />
-            
-            <Textarea
-              placeholder="Compartilhe algo interessante para as pessoas..."
-              value={storyContent}
-              onChange={(e) => setStoryContent(e.target.value)}
-              className="min-h-32 text-lg resize-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
+          <Input
+            placeholder="Nome do outro jogador"
+            value={collaborator}
+            onChange={(e) => setCollaborator(e.target.value)}
+            className="text-lg p-6 border-2 border-blue-100 focus:border-blue-300"
+          />
 
-          <div className="flex flex-wrap gap-3">
+          <Textarea
+            placeholder="Compartilhe algo interessante para as pessoas..."
+            value={storyContent}
+            onChange={(e) => setStoryContent(e.target.value)}
+            className="min-h-32 text-lg resize-none border-2 border-blue-100 focus:border-blue-300 rounded-lg p-4"
+          />
+
+          {showMediaAlert && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertDescription>
+                Mídia adicionada com sucesso!
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2"
+              className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
             >
-              <ImageIcon className="h-4 w-4" />
-              Adicionar Imagens
+              <ImageIcon className="h-6 w-6 text-blue-500" />
+              <span className="text-blue-700">Adicionar Imagens</span>
             </Button>
 
             <Button
               type="button"
               variant="outline"
               onClick={handleCameraCapture}
-              className="flex items-center gap-2"
+              className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
             >
-              <Camera className="h-4 w-4" />
-              Tirar Foto
+              <Camera className="h-6 w-6 text-blue-500" />
+              <span className="text-blue-700">Tirar Foto</span>
             </Button>
 
-            <Button
-              type="button"
-              variant={isRecording ? "destructive" : "outline"}
-              onClick={isRecording ? stopRecording : startRecording}
-              className="flex items-center gap-2"
-            >
-              <Mic className="h-4 w-4" />
-              {isRecording ? `Gravando ${formatTime(recordingTime)}` : 'Gravar Áudio'}
-            </Button>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/*"
-              multiple
-              className="hidden"
-            />
+            <div className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
+              {!isRecording ? (
+                <Button
+                  onClick={startRecording}
+                  className="bg-red-500 hover:bg-red-400 transition-colors"
+                >
+                  <Mic className="h-5 w-5 mr-2" />
+                  Gravar Áudio
+                </Button>
+              ) : (
+                <div className="space-y-2 w-full">
+                  <div className="flex items-center justify-center gap-2 text-blue-700">
+                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    <span>{formatTime(recordingTime)}</span>
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      onClick={pauseRecording}
+                      className="bg-blue-600 hover:bg-blue-500"
+                    >
+                      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      onClick={stopRecording}
+                      className="bg-red-500 hover:bg-red-400"
+                    >
+                      <Square className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            multiple
+            className="hidden"
+          />
 
           {mediaFiles.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {mediaFiles.map((file, index) => (
                 <div key={index} className="relative group">
                   {file.type.startsWith('image/') ? (
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-md group-hover:shadow-lg transition-shadow">
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setSelectedImage(URL.createObjectURL(file))}
-                      >
-                        <Maximize2 className="h-4 w-4" />
-                      </Button>
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setSelectedImage(URL.createObjectURL(file))}
+                        >
+                          <Maximize2 className="h-5 w-5 text-white" />
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="relative aspect-square rounded-lg bg-gray-100 flex flex-col items-center justify-center p-4">
-                      <Mic className="h-8 w-8 mb-2 text-purple-500" />
+                    <div className="relative aspect-square rounded-lg bg-blue-50 flex flex-col items-center justify-center p-4 shadow-md group-hover:shadow-lg transition-shadow">
+                      <Mic className="h-8 w-8 mb-2 text-blue-500" />
                       <audio
                         src={URL.createObjectURL(file)}
                         controls
@@ -300,19 +353,19 @@ const CreateCollabStoryPage = () => {
 
           <Button
             onClick={handleSubmit}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 text-lg font-medium transition-colors"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Enviando História...
-              </>
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Enviando História...</span>
+              </div>
             ) : (
-              <>
-                <Users className="mr-2 h-4 w-4" />
-                Criar História Colaborativa
-              </>
+              <div className="flex items-center justify-center gap-2">
+                <Users className="h-5 w-5" />
+                <span>Criar História Colaborativa</span>
+              </div>
             )}
           </Button>
         </CardContent>
