@@ -73,7 +73,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">
       <Card className="max-w-md w-full mx-4 shadow-lg rounded-xl bg-white p-6 space-y-6">
         <CardHeader className="text-center py-2">
           <CardTitle className="text-2xl font-semibold text-blue-600">
@@ -131,7 +131,7 @@ export default function AuthPage() {
             </div>
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>Houve um erro nos nossos servidores. Por favor, tente novamente mais tarde.</AlertDescription>
               </Alert>
             )}
             <Button

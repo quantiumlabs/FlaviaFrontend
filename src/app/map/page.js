@@ -5,6 +5,8 @@ import mapboxgl from 'mapbox-gl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import MapProfileSection from '@/components/ui/MapProfileSection';
+import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
+import TutorialDialog from '@/components/ui/TutorialDialog';
 import {
   Dialog,
   DialogContent,
@@ -19,18 +21,21 @@ import {
 
 
 const MapPage = () => {
+  const [showTutorial, setShowTutorial] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [stories, setStories] = useState([]);
   const [user, setUser] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [selectedChallenge, setSelectedChallenge] = useState(null); // Add this line
   const router = useRouter();
   const mapContainer = useRef(null);
   const map = useRef(null);
   const geolocateControl = useRef(null);
   const storyMarkers = useRef({});
   const [showChallenges, setShowChallenges] = useState(false);
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [selectedStory, setSelectedStory] = useState(null);
+  const [showModificationDialog, setShowModificationDialog] = useState(false);
   const [challenges] = useState([
     {
       id: 'collect-mist',
@@ -63,16 +68,32 @@ const MapPage = () => {
       title: 'Tecer nuvens',
       description: 'Complemente outras histórias',
       icon: Target,
-      locked: true,
-      color: 'from-gray-400 to-gray-500'
+      color: 'from-blue-500 to-purple-500',
+      action: () => {
+        if (stories.length === 0) {
+          window.alert('No stories available to modify. Try moving to a different location!');
+          return;
+        }
+        const personalStories = stories.filter(s => !s.type || s.type === 'PERSONAL');
+        if (personalStories.length === 0) {
+          window.alert('No personal stories available to modify in this area.');
+          return;
+        }
+        const randomStory = personalStories[Math.floor(Math.random() * personalStories.length)];
+        setSelectedStory(randomStory);
+        setShowModificationDialog(true);
+      },
     }
   ]);
 
-  mapboxgl.accessToken = 'pk.eyJ1Ijoidml0dWIiLCJhIjoiY200MHQ2amI5Mmd2YjJqcGpjczI2Z3QybyJ9.73vr0PWfkhU6e9IU1OrzDA';
+  mapboxgl.accessToken = 'TOKEN';
 
   const handleChallengeSelect = (challenge) => {
     setSelectedChallenge(challenge);
-    if (!challenge.locked) {
+    setShowChallenges(false);
+    if (!challenge.locked && challenge.action) {
+      challenge.action();
+    } else if (!challenge.locked && challenge.route) {
       router.push(challenge.route);
     }
   };
@@ -91,6 +112,7 @@ const MapPage = () => {
             break;
           case error.POSITION_UNAVAILABLE:
             console.error("Localização indisponível.");
+            window.alert("Sua localização está indisponível. Por favor, tente recarregar a pagina ou verifique se o GPS está ativado.");
             break;
           case error.TIMEOUT:
             console.error("Tempo para obter a localização expirou.");
@@ -132,6 +154,7 @@ const MapPage = () => {
     const userList = document.createElement('div');
     userList.className = 'flex flex-wrap gap-2';
   
+    
     // Handle different user displays based on story type
     if (story.type === 'COLLABORATIVE') {
       const uniqueUsers = [...new Set([story.user.username, ...(story.collaborators || [])])];
@@ -189,6 +212,29 @@ const MapPage = () => {
     content.appendChild(storyContent);
   
     popupContainer.appendChild(content);
+
+    if (!story.type || story.type === 'PERSONAL') {
+      const modifyButton = document.createElement('button');
+      modifyButton.className = 'mt-3 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1';
+      modifyButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+        Tecer uma nova versão
+      `;
+      modifyButton.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedStory(story);
+        setShowModificationDialog(true);
+        map.current.getCanvas().style.cursor = '';
+        const popup = document.getElementsByClassName('mapboxgl-popup');
+        if (popup.length) {
+          popup[0].remove();
+        }
+      };
+      content.appendChild(modifyButton);
+    }
   
     // Media section
     if (story.mediaUrls && story.mediaUrls.length > 0) {
@@ -534,6 +580,14 @@ const MapPage = () => {
   };
 
   useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+      localStorage.setItem('hasSeenTutorial', 'true');
+    }
+  }, []);
+
+  useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
@@ -728,7 +782,7 @@ const MapPage = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.alert('Sua sessão expirou, por favor faça login novamente.');
-      router.push('/');
+      router.push('/auth');
     }
   }, [userLocation, router]);
 
@@ -763,7 +817,7 @@ const MapPage = () => {
   }, [router]);
   
   return (
-    <div className="relative h-screen bg-gray-50">
+    <div className="relative h-screen h-[100dvh]">
       <div ref={mapContainer} className="absolute inset-0" />
       
       {/* Modern floating header with glass effect */}
@@ -830,6 +884,18 @@ const MapPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <StoryModificationDialog 
+        story={selectedStory}
+        isOpen={showModificationDialog}
+        onClose={() => {
+          setShowModificationDialog(false);
+          setSelectedStory(null);
+        }}
+      />
+      <TutorialDialog 
+        isOpen={showTutorial} 
+        onClose={() => setShowTutorial(false)} 
+      />
     </div>
   );
 };
