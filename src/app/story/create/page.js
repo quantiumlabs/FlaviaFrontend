@@ -11,7 +11,6 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +38,48 @@ const CreateStoryPage = () => {
   const timerRef = useRef(null);
   const audioChunksRef = useRef([]);
   const router = useRouter();
+
+  const verifyTokenAndUsername = async (token, username) => {
+    const response = await fetch('http://localhost:5522/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        username,
+      }),
+    });
+  
+    if (!response.ok) {
+      throw new Error('Verification failed');
+    }
+  
+    const data = await response.json();
+    return data.valid;
+  };
+
+    useEffect(() => {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user'));
+  
+      // Verify token and username
+      verifyTokenAndUsername(token, user.username)
+        .then((isValid) => {
+          if (!isValid) {
+            // If invalid, clear localStorage and redirect
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            router.push('/');
+          }
+        })
+        .catch(() => {
+          // Handle error case (e.g., network issue or invalid response)
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/');
+        });
+    }, [router]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -148,7 +189,7 @@ const CreateStoryPage = () => {
     e.preventDefault();
 
     if (!isLocationAvailable) {
-      alert('Localização não disponível. Tente novamente.');
+      alert('Houve um erro no serviço de localização. Por favor recarregue a página e tente novamente.');
       return;
     }
 
@@ -307,53 +348,35 @@ const CreateStoryPage = () => {
       </Dialog>
 
       <Dialog 
-        open={showChallengeDialog} 
-        onOpenChange={(open) => {
-          setShowChallengeDialog(open);
-          if (!open && hideChallenge) {
-            localStorage.setItem('hideChallengeDialog', 'true');
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl text-orange-800">Desafio Colecionar Névoas</DialogTitle>
-            <DialogDescription className="pt-4 text-base text-gray-700">
-              <p className="mb-4">
-              Lorem ipsum dolor sit amet:
-              </p>
-              <ul className="list-disc pl-6 mt-2 space-y-2">
-                <li>consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore</li>
-                <li>et dolore magna aliqua</li>
-                <li> Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris</li>
-                <li>nisi ut aliquip ex ea commodo consequat</li>
-              </ul>
-              <div className="flex items-center space-x-2 mt-4">
-                <Checkbox 
-                  id="hide-challenge" 
-                  checked={hideChallenge}
-                  onCheckedChange={(checked) => setHideChallenge(checked)}
-                />
-                <label 
-                  htmlFor="hide-challenge" 
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Não mostrar novamente
-                </label>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
-            <Button
-              type="button"
-              className="bg-orange-600 hover:bg-orange-500 text-white"
-              onClick={() => setShowChallengeDialog(false)}
-            >
-              Entendi!
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          open={showChallengeDialog} 
+          onOpenChange={(open) => {
+            setShowChallengeDialog(open);
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-orange-800">Desafio Colecionar Névoas</DialogTitle>
+              <DialogDescription className="pt-4 text-base text-gray-700">
+                <p className="mb-4">
+                  Cada história que você encontra, cada narrativa que você ouve, se torna parte do céu que você desenha. Colecionar é mais que ouvir: é conectar memórias.
+                </p>
+                <p className="font-semibold mb-4">
+                  Missão: Compartilhe uma história que alguém já lhe contou, um momento único que ficou gravado na sua memória ou capture a história de um desconhecido na cidade.
+                </p>
+
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-center">
+              <Button
+                type="button"
+                className="bg-orange-600 hover:bg-orange-500 text-white"
+                onClick={() => setShowChallengeDialog(false)}
+              >
+                Entendi!
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 };

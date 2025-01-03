@@ -88,19 +88,19 @@ export default function AuthPage() {
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-              <Input
-                id="username"
-                name="username"
-                placeholder="Nome de usuário"
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, username: e.target.value }))
-                }
-                disabled={isLoading}
-                required
-                className="pr-10"
-                aria-label="Nome de usuário"
-              />
+            <Input
+              id="username"
+              name="username"
+              placeholder="Nome de usuário"
+              value={formData.username}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, username: e.target.value }))
+              }
+              disabled={isLoading}
+              required
+              className="pr-10 text-base sm:text-lg" // Adiciona tamanho de fonte responsivo
+              aria-label="Nome de usuário"
+            />
               <label htmlFor="username" className="absolute inset-y-0 right-0 flex items-center px-3">
               </label>
             </div>
@@ -117,7 +117,7 @@ export default function AuthPage() {
                 disabled={isLoading}
                 required
                 minLength={6}
-                className="pr-10"
+                className="pr-10 text-base sm:text-lg" // Adiciona tamanho de fonte responsivo
                 aria-label="Senha"
               />
               <button

@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import 'dotenv/config';
 import MapProfileSection from '@/components/ui/MapProfileSection';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
 import TutorialDialog from '@/components/ui/TutorialDialog';
+import WeaveCloudDialog from '@/components/ui/WeaveCloudDialog';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +29,8 @@ const MapPage = () => {
   const [stories, setStories] = useState([]);
   const [user, setUser] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [selectedChallenge, setSelectedChallenge] = useState(null); // Add this line
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [showWeaveDialog, setShowWeaveDialog] = useState(false);
   const router = useRouter();
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -69,25 +72,32 @@ const MapPage = () => {
       description: 'Complemente outras histórias',
       icon: Target,
       color: 'from-blue-500 to-purple-500',
-      action: () => {
-        if (stories.length === 0) {
-          window.alert('No stories available to modify. Try moving to a different location!');
-          return;
-        }
-        const personalStories = stories.filter(s => !s.type || s.type === 'PERSONAL');
-        if (personalStories.length === 0) {
-          window.alert('No personal stories available to modify in this area.');
-          return;
-        }
-        const randomStory = personalStories[Math.floor(Math.random() * personalStories.length)];
-        setSelectedStory(randomStory);
-        setShowModificationDialog(true);
-      },
+      action: () => setShowWeaveDialog(true),
     }
   ]);
 
-  mapboxgl.accessToken = 'TOKEN';
+  mapboxgl.accessToken = process.env.MAPBOX_ACCESS_TOKEN;
 
+  const verifyTokenAndUsername = async (token, username) => {
+    const response = await fetch('http://localhost:5522/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        username,
+      }),
+    });
+  
+    if (!response.ok) {
+      throw new Error('Verification failed');
+    }
+  
+    const data = await response.json();
+    return data.valid;
+  };
+  
   const handleChallengeSelect = (challenge) => {
     setSelectedChallenge(challenge);
     setShowChallenges(false);
@@ -98,12 +108,35 @@ const MapPage = () => {
     }
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // Verify token and username
+    verifyTokenAndUsername(token, user.username)
+      .then((isValid) => {
+        if (!isValid) {
+          // If invalid, clear localStorage and redirect
+          window.alert('Foi detectado uma alteração das informações de login. Por favor, faça login novamente.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/');
+        }
+      })
+      .catch(() => {
+        // Handle error case (e.g., network issue or invalid response)
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      });
+  }, [router]);
+
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+        console.log('sucesso');
       },
       (error) => {
         switch (error.code) {
@@ -331,154 +364,63 @@ const MapPage = () => {
           const createAudioPlayer = (url) => {
             const audioWrapper = document.createElement('div');
             audioWrapper.className = 'bg-gray-50 rounded-lg p-3 col-span-2';
-  
+        
             const playerContainer = document.createElement('div');
             playerContainer.className = 'flex items-center gap-3 bg-white rounded-lg p-2.5 shadow-sm';
-  
+        
             const playButton = document.createElement('button');
             playButton.className = 'w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95';
             playButton.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-              </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                </svg>
             `;
-  
+        
             const audio = document.createElement('audio');
-            audio.preload = 'metadata';
-            
-            const mp3Source = document.createElement('source');
-            mp3Source.src = url;
-            mp3Source.type = 'audio/mpeg';
-            
-            const m4aSource = document.createElement('source');
-            m4aSource.src = url.replace('.mp3', '.m4a');
-            m4aSource.type = 'audio/mp4';
-            
-            audio.appendChild(mp3Source);
-            audio.appendChild(m4aSource);
-  
-            const progressContainer = document.createElement('div');
-            progressContainer.className = 'flex-1 flex flex-col gap-1';
-  
-            const waveContainer = document.createElement('div');
-            waveContainer.className = 'relative w-full h-8 bg-gray-100 rounded-lg overflow-hidden';
-  
-            const progressBar = document.createElement('div');
-            progressBar.className = 'absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 origin-left scale-x-0 transition-transform duration-150';
-            progressBar.style.transform = 'scaleX(0)';
-  
-            const wavePattern = document.createElement('div');
-            wavePattern.className = 'absolute inset-0 opacity-25';
-            wavePattern.style.backgroundImage = `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q10 5, 20 20 T40 20' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E")`;
-            wavePattern.style.backgroundSize = '40px 40px';
-  
-            const timeDisplay = document.createElement('div');
-            timeDisplay.className = 'flex items-center justify-between text-xs font-medium';
-            
-            const currentTime = document.createElement('span');
-            currentTime.className = 'text-blue-600';
-            currentTime.textContent = '0:00';
-            
-            const duration = document.createElement('span');
-            duration.className = 'text-gray-500';
-            duration.textContent = '0:00';
-            
-            timeDisplay.appendChild(currentTime);
-            timeDisplay.appendChild(duration);
-  
+            audio.preload = 'none'; // Disable preloading
+            const source = document.createElement('source');
+            source.src = url;
+            source.type = 'audio/mpeg';
+            audio.appendChild(source);
+        
             let isPlaying = false;
-  
-            const formatTime = (seconds) => {
-              const minutes = Math.floor(seconds / 60);
-              const remainingSeconds = Math.floor(seconds % 60);
-              return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        
+            const togglePlay = () => {
+                if (isPlaying) {
+                    audio.pause();
+                } else {
+                    audio.play().catch((error) => {
+                        console.error('Playback failed:', error);
+                    });
+                }
             };
-  
-            const updatePlayButton = (playing) => {
-              playButton.innerHTML = playing ? `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              ` : `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                </svg>
-              `;
-            };
-  
-            const setupAudio = () => {
-              audio.load();
-              if (audio.paused) {
-                audio.muted = true;
-                audio.play().then(() => {
-                  audio.pause();
-                  audio.muted = false;
-                  audio.currentTime = 0;
-                }).catch(() => {
-                  console.log('Audio playback failed');
-                });
-              }
-            };
-  
-            playButton.addEventListener('click', () => {
-              if (isPlaying) {
-                audio.pause();
-              } else {
-                audio.play().catch((error) => {
-                  console.error('Playback failed:', error);
-                  setupAudio();
-                });
-              }
-            });
-  
+        
+            playButton.addEventListener('click', togglePlay);
+        
             audio.addEventListener('play', () => {
-              isPlaying = true;
-              updatePlayButton(true);
+                isPlaying = true;
+                playButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                `;
             });
-  
+        
             audio.addEventListener('pause', () => {
-              isPlaying = false;
-              updatePlayButton(false);
+                isPlaying = false;
+                playButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                    </svg>
+                `;
             });
-  
-            audio.addEventListener('timeupdate', () => {
-              const percent = (audio.currentTime / audio.duration) * 100;
-              progressBar.style.transform = `scaleX(${percent / 100})`;
-              currentTime.textContent = formatTime(audio.currentTime);
-            });
-  
-            audio.addEventListener('loadedmetadata', () => {
-              duration.textContent = formatTime(audio.duration);
-            });
-  
-            audio.addEventListener('ended', () => {
-              isPlaying = false;
-              updatePlayButton(false);
-              progressBar.style.transform = 'scaleX(0)';
-            });
-  
-            waveContainer.addEventListener('click', (e) => {
-              const rect = waveContainer.getBoundingClientRect();
-              const percent = (e.clientX - rect.left) / rect.width;
-              audio.currentTime = percent * audio.duration;
-            });
-  
-            waveContainer.appendChild(progressBar);
-            waveContainer.appendChild(wavePattern);
-            
-            progressContainer.appendChild(waveContainer);
-            progressContainer.appendChild(timeDisplay);
-            
+        
             playerContainer.appendChild(playButton);
-            playerContainer.appendChild(progressContainer);
-            
             audioWrapper.appendChild(playerContainer);
             audioWrapper.appendChild(audio);
-  
-            setupAudio();
-  
+        
             return audioWrapper;
-          };
+        };
   
           mediaContainer.appendChild(createAudioPlayer(url));
         }
@@ -810,6 +752,7 @@ const MapPage = () => {
       router.push('/story/create');
     }
 
+
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
@@ -817,7 +760,7 @@ const MapPage = () => {
   }, [router]);
   
   return (
-    <div className="relative h-screen h-[100dvh]">
+    <div className="relative h-[100dvh]" >
       <div ref={mapContainer} className="absolute inset-0" />
       
       {/* Modern floating header with glass effect */}
@@ -846,7 +789,6 @@ const MapPage = () => {
         </div>
       </div>
 
-      {/* Side Menu with glass effect */}
       <MapProfileSection user={user} onLogout={handleLogout} isOpen={isMenuOpen} />
 
 
@@ -884,6 +826,10 @@ const MapPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <WeaveCloudDialog 
+        isOpen={showWeaveDialog} 
+        onClose={() => setShowWeaveDialog(false)}
+      />
       <StoryModificationDialog 
         story={selectedStory}
         isOpen={showModificationDialog}
