@@ -20,7 +20,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+
 
 const CreateCollabStoryPage = () => {
   const [storyContent, setStoryContent] = useState('');
@@ -33,6 +36,8 @@ const CreateCollabStoryPage = () => {
   const [cloudLocation, setCloudLocation] = useState(null);
   const [collaborator, setCollaborator] = useState('');
   const [showMediaAlert, setShowMediaAlert] = useState(false);
+  const [showChallengeDialog, setShowChallengeDialog] = useState(true);
+  const [hideChallenge, setHideChallenge] = useState(false);
 
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -249,16 +254,6 @@ const CreateCollabStoryPage = () => {
               <span className="text-blue-700">Adicionar Imagens</span>
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCameraCapture}
-              className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
-            >
-              <Camera className="h-6 w-6 text-blue-500" />
-              <span className="text-blue-700">Tirar Foto</span>
-            </Button>
-
             <div className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
               {!isRecording ? (
                 <Button
@@ -386,6 +381,38 @@ const CreateCollabStoryPage = () => {
               className="w-full h-auto rounded-lg"
             />
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog 
+        open={showChallengeDialog} 
+        onOpenChange={(open) => {
+          setShowChallengeDialog(open);
+          if (!open && hideChallenge) {
+            localStorage.setItem('hideChallengeDialog', 'true');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-blue-800">Desafio Céus Cruzados</DialogTitle>
+            <DialogDescription className="pt-4 text-base text-gray-700">
+              <p className="mb-4">
+                Quando vocês se encontram, as histórias se cruzam. Juntos, vocês podem criar uma história que só existe porque vocês se encontraram.
+              </p>
+              <h1 className="font-semibold mb-4">
+                Missão: encontre o jogador mais próximo de você e tire uma foto.
+              </h1>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              className="bg-blue-600 hover:bg-blue-500 text-white"
+              onClick={() => setShowChallengeDialog(false)}
+            >
+              Entendi!
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

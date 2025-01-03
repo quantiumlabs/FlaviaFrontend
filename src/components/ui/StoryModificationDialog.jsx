@@ -39,7 +39,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit modification');
+        throw new Error(errorData.message || 'Ops! Parece que algo deu errado :( Tente novamente mais tarde.');
       }
 
       setSuccess(true);
@@ -75,18 +75,18 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
 
           {success && (
             <Alert className="bg-green-50 text-green-800 border-green-200">
-              <AlertDescription>Modification request submitted successfully!</AlertDescription>
+              <AlertDescription>Sua modificação foi enviada com sucesso!</AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
             <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-sm text-gray-700 mb-2">Original Story</h4>
+              <h4 className="font-medium text-sm text-gray-700 mb-2">História original:</h4>
               <p className="text-sm text-gray-600">{story?.content}</p>
             </div>
 
             <Textarea
-              placeholder="Write your suggested modifications..."
+              placeholder="Escreva sua nova versão da história..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[120px]"
@@ -101,7 +101,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                   onClick={() => document.getElementById('file-upload').click()}
                 >
                   <FileImage className="w-4 h-4 mr-2" />
-                  {files.length ? `${files.length} files selected` : 'Add media (optional)'}
+                  {files.length ? `${files.length} files selected` : 'Adicionar foto (opcional)'}
                 </Button>
                 <input
                   id="file-upload"
@@ -146,7 +146,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              Cancelar
             </Button>
             <Button 
               onClick={handleSubmit}
@@ -158,7 +158,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                   Submitting...
                 </>
               ) : (
-                'Submit Modification'
+                'Enviar alteração'
               )}
             </Button>
           </div>

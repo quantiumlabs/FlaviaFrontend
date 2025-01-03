@@ -12,7 +12,14 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const SkiesInHandsPage = () => {
   const [capturedImage, setCapturedImage] = useState(null);
@@ -21,6 +28,8 @@ const SkiesInHandsPage = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [objectContent, setObjectContent] = useState('');
+  const [showChallengeDialog, setShowChallengeDialog] = useState(true);
+  const [hideChallenge, setHideChallenge] = useState(false);
   const [cloudLocation, setCloudLocation] = useState(null);
   
   // New audio recording states
@@ -244,51 +253,7 @@ const SkiesInHandsPage = () => {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Camera Section */}
-            <div className="space-y-4">
-              {!isCapturing && !capturedImage && (
-                <Button
-                  onClick={handleStartCamera}
-                  className="w-full h-40 border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors"
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Camera className="h-8 w-8 text-purple-500" />
-                    <span className="text-purple-700">Iniciar Câmera</span>
-                  </div>
-                </Button>
-              )}
-
-              {isCapturing && (
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    className="w-full rounded-lg border-2 border-purple-300"
-                  />
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                    <Button
-                      onClick={handleCapturePhoto}
-                      className="bg-purple-600 hover:bg-purple-500"
-                    >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Capturar
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (videoRef.current?.srcObject) {
-                          videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-                        }
-                        setIsCapturing(false);
-                      }}
-                      variant="outline"
-                      className="bg-white"
-                    >
-                      <X className="h-5 w-5 mr-2" />
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+  
 
             {/* Upload and Recording Buttons */}
             <div className="space-y-4">
@@ -374,6 +339,38 @@ const SkiesInHandsPage = () => {
           </Button>
         </CardContent>
       </Card>
+      <Dialog 
+          open={showChallengeDialog} 
+          onOpenChange={(open) => {
+            setShowChallengeDialog(open);
+            if (!open && hideChallenge) {
+              localStorage.setItem('hideChallengeDialog', 'true');
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-purple-800">Desafio Céus nas Mãos</DialogTitle>
+              <DialogDescription className="pt-4 text-base text-gray-700">
+                <p className="mb-4">
+                  Você carrega histórias, visões de céus, ecos de lugares. Tudo que você vê é casa. Escolha um objeto, um pedaço desse lugar, mas que já mora em você.
+                </p>
+                <p className="font-semibold mb-4">
+                  Missão: Pegue um objeto e transporte-o para outro lugar. Depois, tire uma foto.
+                </p>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-center">
+              <Button
+                type="button"
+                className="bg-purple-600 hover:bg-purple-500 text-white"
+                onClick={() => setShowChallengeDialog(false)}
+              >
+                Entendi!
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 };

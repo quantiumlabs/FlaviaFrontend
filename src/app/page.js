@@ -128,9 +128,7 @@ export default function Home() {
 
               {/* Footer */}
               <footer className="text-center py-8 text-white/60">
-                <p className="font-['Press_Start_2P'] text-xs">
-                  © 2024 CÉUS • TODOS OS DIREITOS RESERVADOS
-                </p>
+
               </footer>
             </div>
           </motion.div>
