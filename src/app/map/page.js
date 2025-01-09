@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import 'dotenv/config';
 import MapProfileSection from '@/components/ui/MapProfileSection';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
 import TutorialDialog from '@/components/ui/TutorialDialog';
@@ -21,21 +20,55 @@ import {
   Target, Apple, Map as MapIcon, Menu, X, ChevronRight
 } from 'lucide-react';
 
-
 const MapPage = () => {
+  const router = useRouter();
+  const isBrowser = typeof window !== 'undefined';
+  const [user, setUser] = useState(null);
+  const PLAYER_ICON_SIZE = 32;
+
+
+  // Move localStorage operations into useEffect
+  useEffect(() => {
+    if (!isBrowser) return;
+
+    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (!userData || !token) {
+      console.log('No user data or token found');
+      window.alert('Sua sessão expirou ou você ainda não está logado. Por favor, faça login primeiro.');
+      router.push('/auth');
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(userData);
+      if (!parsedUser || !parsedUser.username) {
+        throw new Error('Invalid user data');
+      }
+      setUser(parsedUser);
+    } catch (error) {
+      console.log('Invalid user data found');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.alert('Sua sessão expirou ou você ainda não está logado. Por favor, faça login primeiro.');
+      router.push('/auth');
+      return;
+    }
+  }, [router]);
+
   const [showTutorial, setShowTutorial] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState({ lng: 0, lat: 0 });
   const [stories, setStories] = useState([]);
-  const [user, setUser] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [showWeaveDialog, setShowWeaveDialog] = useState(false);
-  const router = useRouter();
   const mapContainer = useRef(null);
   const map = useRef(null);
   const geolocateControl = useRef(null);
   const storyMarkers = useRef({});
+  const marker = useRef(null);
   const [showChallenges, setShowChallenges] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [showModificationDialog, setShowModificationDialog] = useState(false);
@@ -76,8 +109,7 @@ const MapPage = () => {
     }
   ]);
 
-  mapboxgl.accessToken = process.env.MAPBOX_ACCESS_TOKEN;
-
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const verifyTokenAndUsername = async (token, username) => {
     const response = await fetch('http://localhost:5522/verify', {
       method: 'POST',
@@ -542,8 +574,8 @@ const MapPage = () => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v11',
-      zoom: 40,
-      center: [0, 0]
+      zoom: 18,
+      center: [userLocation.lng, userLocation.lat]
     });
 
     geolocateControl.current = new mapboxgl.GeolocateControl({
@@ -551,75 +583,38 @@ const MapPage = () => {
         enableHighAccuracy: true
       },
       trackUserLocation: true,
-      showUserHeading: true,
-      showAccuracyCircle: false
+      showUserHeading: false,
+      showAccuracyCircle: false,
+      showUserLocation: false // Disable the default blue dot
     });
 
     map.current.addControl(geolocateControl.current);
 
+    // Create a custom marker with the PNG image
+    marker.current = new mapboxgl.Marker({
+      element: document.createElement('div'), // Custom container for the marker
+    });
+
+    // Apply styles to the marker's element
+    marker.current.getElement().style.backgroundImage = 'url(/IMG_4201.png)';
+    marker.current.getElement().style.backgroundSize = 'contain';
+    marker.current.getElement().style.width = '40px';
+    marker.current.getElement().style.height = '40px';
+
     geolocateControl.current.on('geolocate', (e) => {
       const { longitude, latitude } = e.coords;
       setUserLocation({ lng: longitude, lat: latitude });
-      setLocationError(null);
-      
+
+      // Update marker position
+      marker.current.setLngLat([longitude, latitude]).addTo(map.current);
+
+      // Smooth map transition
       map.current.flyTo({
         center: [longitude, latitude],
         zoom: 18,
-        speed: 3.5
+        speed: 3
       });
     });
-
-    geolocateControl.current.on('error', (e) => {
-      console.error('Geolocation error:', e.error);
-    });
-
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-        70% { box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-      }
-      
-      .mapboxgl-map {
-        height: 100vh !important;
-        height: -webkit-fill-available !important;
-      }
-      
-      .bottom-safe-area {
-        bottom: env(safe-area-inset-bottom);
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-
-      .mapboxgl-popup-content {
-        max-width: 300px;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-
-      .story-media img {
-        width: 100%;
-        height: auto;
-        border-radius: 4px;
-        margin-bottom: 8px;
-      }
-
-      .story-media audio {
-        width: 100%;
-        margin-bottom: 8px;
-        border-radius: 4px;
-      }
-
-      .story-marker {
-        transition: transform 0.2s ease;
-      }
-
-      .story-marker:hover {
-        transform: scale(1.2);
-      }
-    `;
-    document.head.appendChild(style);
 
     map.current.on('load', () => {
       geolocateControl.current.trigger();
@@ -632,6 +627,7 @@ const MapPage = () => {
       }
     };
   }, []);
+
   const fetchAndUpdateStories = useCallback(async () => {
     if (!userLocation || !map.current) return;
   
@@ -735,6 +731,7 @@ const MapPage = () => {
   }, [fetchAndUpdateStories]);
 
   const handleLogout = () => {
+    if (!isBrowser) return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/');
@@ -796,7 +793,7 @@ const MapPage = () => {
       <Dialog open={showChallenges} onOpenChange={setShowChallenges}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Desafios Disponíveis</DialogTitle>
+            <DialogTitle className="font-['Press_Start_2P'] text-sm3 leading-loose">Escolha um desafio</DialogTitle>
             <DialogDescription>
               Escolha um desafio para começar sua jornada
             </DialogDescription>

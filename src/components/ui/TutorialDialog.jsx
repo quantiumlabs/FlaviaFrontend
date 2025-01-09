@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trophy, Map, Target, Users, Cloud } from 'lucide-react';
+import { Trophy, Map, Target, Users, Cloud, Apple, Swords } from 'lucide-react';
 
 const TutorialDialog = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const tutorialSteps = [
     {
-      title: "Bem-vindo ao Céus!",
-      description: "Vamos te mostrar como usar o aplicativo para compartilhar e descobrir histórias ao seu redor.",
+      title: "Explorando o Céus",
+      description: "Vou te mostrar como jogar, compartilhar e descobrir histórias ao seu redor.",
       icon: Map,
       color: "bg-blue-500"
     },
@@ -25,7 +25,12 @@ const TutorialDialog = ({ isOpen, onClose }) => {
         {
           icon: Users,
           title: "Céus Cruzados",
-          description: "Crie histórias colaborativas"
+          description: "Crie histórias com outros jogadores"
+        },
+        {
+          icon: Apple,
+          title: "Céus nas mãos",
+          description: "Compartilhe histórias de objetos"
         },
         {
           icon: Target,
@@ -33,7 +38,7 @@ const TutorialDialog = ({ isOpen, onClose }) => {
           description: "Complemente outras histórias"
         }
       ],
-      icon: Trophy,
+      icon: Swords,
       color: "bg-yellow-500"
     },
     {

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Camera, Mic, X, Image as ImageIcon, Maximize2, Send, Loader2, Users, Square, Pause, Play } from 'lucide-react';
 import {
@@ -38,12 +39,57 @@ const CreateCollabStoryPage = () => {
   const [showMediaAlert, setShowMediaAlert] = useState(false);
   const [showChallengeDialog, setShowChallengeDialog] = useState(true);
   const [hideChallenge, setHideChallenge] = useState(false);
+  const contentWrapperRef = useRef(null);
+
 
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
   const audioChunksRef = useRef([]);
   const router = useRouter();
+
+
+  const verifyTokenAndUsername = async (token, username) => {
+    const response = await fetch('http://localhost:5522/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        username,
+      }),
+    });
+  
+    if (!response.ok) {
+      throw new Error('Verification failed');
+    }
+  
+    const data = await response.json();
+    return data.valid;
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+  
+      // Verify token and username
+    verifyTokenAndUsername(token, user.username)
+        .then((isValid) => {
+          if (!isValid) {
+            // If invalid, clear localStorage and redirect
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            router.push('/');
+          }
+        })
+        .catch(() => {
+          // Handle error case (e.g., network issue or invalid response)
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/');
+        });
+    }, [router]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -80,21 +126,6 @@ const CreateCollabStoryPage = () => {
     }
   };
 
-  const handleCameraCapture = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const track = stream.getVideoTracks()[0];
-      const imageCapture = new ImageCapture(track);
-      const blob = await imageCapture.takePhoto();
-      const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-      setMediaFiles(prev => [...prev, file]);
-      setShowMediaAlert(true);
-      setTimeout(() => setShowMediaAlert(false), 3000);
-      track.stop();
-    } catch (error) {
-      console.error('Erro ao capturar foto:', error);
-    }
-  };
 
   const startRecording = async () => {
     try {
@@ -212,13 +243,15 @@ const CreateCollabStoryPage = () => {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
-    <div className="min-h-screen bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat md:p-8">
-      <Card className="max-w-2xl mx-auto shadow-lg">
+    <div className="min-h-screen flex flex-col overflow-auto bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat">
+      <div className="flex-1 md:p-8 overflow-y-auto">
+        <Card className="max-w-2xl mx-auto shadow-lg my-8">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-800">Céus Cruzados</CardTitle>
-          <CardDescription className="text-blue-600">Crie uma história colaborativa com outro jogador</CardDescription>
+          <CardTitle className="text-2xl font-bold text-blue-800 font-['Press_Start_2P'] leading-loose">Céus Cruzados</CardTitle>
+          <CardDescription className="text-blue-600">Encontre o jogador mais próximo de você e tirem uma foto juntos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Input
@@ -229,7 +262,7 @@ const CreateCollabStoryPage = () => {
           />
 
           <Textarea
-            placeholder="Compartilhe algo interessante para as pessoas..."
+            placeholder="Descrição da ação"
             value={storyContent}
             onChange={(e) => setStoryContent(e.target.value)}
             className="min-h-32 text-lg resize-none border-2 border-blue-100 focus:border-blue-300 rounded-lg p-4"
@@ -303,7 +336,7 @@ const CreateCollabStoryPage = () => {
                 <div key={index} className="relative group">
                   {file.type.startsWith('image/') ? (
                     <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-md group-hover:shadow-lg transition-shadow">
-                      <img
+                      <Image
                         src={URL.createObjectURL(file)}
                         alt="Preview"
                         className="w-full h-full object-cover"
@@ -364,7 +397,8 @@ const CreateCollabStoryPage = () => {
             )}
           </Button>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       <Dialog
         open={!!selectedImage}
@@ -375,7 +409,7 @@ const CreateCollabStoryPage = () => {
             <DialogTitle>Visualização de Imagem</DialogTitle>
           </DialogHeader>
           {selectedImage && (
-            <img
+            <Image
               src={selectedImage}
               alt="Pré-visualização"
               className="w-full h-auto rounded-lg"

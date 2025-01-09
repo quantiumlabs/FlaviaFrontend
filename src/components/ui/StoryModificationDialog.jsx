@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, X, FileImage, Edit2 } from 'lucide-react';
+import Image from 'next/image';
 
 const StoryModificationDialog = ({ story, isOpen, onClose }) => {
   const [content, setContent] = useState('');
@@ -62,7 +63,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit2 className="w-5 h-5" />
-            Tecer uma Nova Versão
+            Tecer Nuvens
           </DialogTitle>
         </DialogHeader>
 
@@ -80,13 +81,8 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
           )}
 
           <div className="space-y-2">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-sm text-gray-700 mb-2">História original:</h4>
-              <p className="text-sm text-gray-600">{story?.content}</p>
-            </div>
-
             <Textarea
-              placeholder="Escreva sua nova versão da história..."
+              placeholder="Todas as suas alterações serão adicionadas à frente da história original."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[120px]"
@@ -121,7 +117,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                       className="relative group bg-gray-100 rounded-lg p-2 w-20 h-20"
                     >
                       {file.type.startsWith('image/') ? (
-                        <img
+                        <Image
                           src={URL.createObjectURL(file)}
                           alt={`Preview ${index + 1}`}
                           className="w-full h-full object-cover rounded"
@@ -155,7 +151,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting...
+                  Enviando...
                 </>
               ) : (
                 'Enviar alteração'
