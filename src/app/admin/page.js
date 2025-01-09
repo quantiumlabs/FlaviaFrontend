@@ -94,7 +94,14 @@ const AdminDashboard = () => {
   const router = useRouter();
 
   // Create audio element ref
-  const audioRef = React.useRef(new Audio());
+  const audioRef = React.useRef(null);
+
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio();
+    }
+  }, []);
 
   // Memoized content checker
   const checkContent = useMemo(() => (content) => {
@@ -150,7 +157,7 @@ const AdminDashboard = () => {
   // Filter stories
   useEffect(() => {
     let filtered = stories;
-
+    window.alert('A pagina de administrador ainda está em desenvolvimento, é recomendado que ela seja usada apenas no computador');
     if (search) {
       filtered = filtered.filter(
         (story) =>
@@ -195,6 +202,8 @@ const AdminDashboard = () => {
 
   // Audio playback control
   const toggleAudioPlayback = (url) => {
+    if (!audioRef.current) return;
+
     if (audioRef.current.src !== url) {
       audioRef.current.src = url;
     }
@@ -207,6 +216,7 @@ const AdminDashboard = () => {
       setAudioPlayer({ url, isPlaying: true });
     }
   };
+
 
   // Get content flags
   const getContentFlags = (content) => {
@@ -345,9 +355,9 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-auto">
       {/* Header */}
-      <div className="border-b">
+      <div className="border-b sticky top-0 bg-background z-10">
         <div className="container flex h-16 items-center px-4">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={() => router.push('/map')}>
@@ -396,7 +406,7 @@ const AdminDashboard = () => {
               <SheetContent side="right" className="w-full sm:w-80">
                 <div className="flex flex-col h-full">
                   <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
+                    <SheetTitle>Menu</SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto py-4">
                     <nav className="space-y-4">
@@ -481,7 +491,7 @@ const AdminDashboard = () => {
             icon={ImageIcon}
           />
         </div>
-
+  
         {/* Search and Filters - Desktop */}
         <div className="hidden md:flex gap-4">
           <div className="relative flex-1">
@@ -528,7 +538,7 @@ const AdminDashboard = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
+  
         {/* Search Input - Mobile */}
         <div className="md:hidden">
           <div className="relative">
@@ -540,24 +550,24 @@ const AdminDashboard = () => {
             />
           </div>
         </div>
-
+  
         {/* Content */}
         <Card className="overflow-hidden">
-          <ScrollArea className="h-[calc(100vh-360px)]">
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-48">Usuário</TableHead>
-                    <TableHead>Conteúdo</TableHead>
-                    <TableHead className="w-32">Data</TableHead>
-                    <TableHead className="w-40">Localização</TableHead>
-                    <TableHead className="w-32">Mídia</TableHead>
-                    <TableHead className="w-20">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+        <ScrollArea className="md:max-h-[600px] h-[50vh] overflow-y-auto">
+        {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-48">Usuário</TableHead>
+                      <TableHead>Conteúdo</TableHead>
+                      <TableHead className="w-32">Data</TableHead>
+                      <TableHead className="w-40">Localização</TableHead>
+                      <TableHead className="w-32">Mídia</TableHead>
+                      <TableHead className="w-20">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {filteredStories.map((story) => (
                     <TableRow key={story.id}>
                       <TableCell className="font-medium">{story.user.username}</TableCell>
@@ -603,7 +613,7 @@ const AdminDashboard = () => {
                 </TableBody>
               </Table>
             </div>
-
+  
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4 p-4">
               {filteredStories.map((story) => (
@@ -612,7 +622,7 @@ const AdminDashboard = () => {
             </div>
           </ScrollArea>
         </Card>
-
+  
         {/* Empty State */}
         {filteredStories.length === 0 && (
           <Card>
@@ -639,7 +649,7 @@ const AdminDashboard = () => {
           </Card>
         )}
       </div>
-
+  
       {/* Image Lightbox */}
       {isOpen && (
         <ImageLightbox
@@ -651,35 +661,7 @@ const AdminDashboard = () => {
           onMoveNextRequest={() => setPhotoIndex((photoIndex + 1) % images.length)}
         />
       )}
-
-      {/* Keyboard Event Listeners */}
-      <useEffect>
-        {() => {
-          const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-              e.preventDefault();
-              document.querySelector('input[type="text"]')?.focus();
-            }
-            if (e.key === 'Escape') {
-              if (isOpen) {
-                setIsOpen(false);
-              } else if (search) {
-                setSearch('');
-                setActiveFilters([]);
-              }
-            }
-            if (e.key === ' ' && audioPlayer.url) {
-              e.preventDefault();
-              toggleAudioPlayback(audioPlayer.url);
-            }
-          };
-
-          window.addEventListener('keydown', handleKeyDown);
-          return () => window.removeEventListener('keydown', handleKeyDown);
-        }}
-      </useEffect>
     </div>
-  );
-};
+  );}
 
 export default AdminDashboard;

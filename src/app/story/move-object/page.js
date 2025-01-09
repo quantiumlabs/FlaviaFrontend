@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Camera, Loader2, Mic, Trash, Image as ImageIcon, X, Square, Play, Pause } from 'lucide-react';
 import {
@@ -20,6 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SkiesInHandsPage = () => {
   const [capturedImage, setCapturedImage] = useState(null);
@@ -45,8 +47,48 @@ const SkiesInHandsPage = () => {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
-
   const router = useRouter();
+  const verifyTokenAndUsername = async (token, username) => {
+    const response = await fetch('http://localhost:5522/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        username,
+      }),
+    });
+  
+    if (!response.ok) {
+      throw new Error('Verification failed');
+    }
+  
+    const data = await response.json();
+    return data.valid;
+  };
+
+    useEffect(() => {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user'));
+    
+        // Verify token and username
+      verifyTokenAndUsername(token, user.username)
+          .then((isValid) => {
+            if (!isValid) {
+              // If invalid, clear localStorage and redirect
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              router.push('/');
+            }
+          })
+          .catch(() => {
+            // Handle error case (e.g., network issue or invalid response)
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            router.push('/');
+          });
+      }, [router]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -239,14 +281,14 @@ const SkiesInHandsPage = () => {
     <div className="min-h-screen bg-[url('/object.png')] bg-cover bg-center bg-no-repeat p-4 md:p-8">
       <Card className="max-w-2xl mx-auto shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-purple-800">Céus nas Mãos</CardTitle>
+          <CardTitle className="text-2xl font-bold text-purple-800 font-['Press_Start_2P'] leading-loose">Céus nas Mãos</CardTitle>
           <CardDescription className="text-purple-600">
-            Desloque um objeto e registre sua história
+            Desloque um objeto para um novo local e registre sua história.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Input
-            placeholder="Digite o nome do objeto deslocado"
+            placeholder="Nome do objeto deslocado"
             value={objectContent}
             onChange={(e) => setObjectContent(e.target.value)}
             className="text-lg p-6 border-2 border-purple-100 focus:border-purple-300"
@@ -291,7 +333,7 @@ const SkiesInHandsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {capturedImage && (
                 <div className="relative group">
-                  <img
+                  <Image
                     src={URL.createObjectURL(capturedImage)}
                     alt="Foto capturada"
                     className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
@@ -307,7 +349,7 @@ const SkiesInHandsPage = () => {
 
               {uploadedImage && (
                 <div className="relative group">
-                  <img
+                  <Image
                     src={URL.createObjectURL(uploadedImage)}
                     alt="Foto enviada"
                     className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"

@@ -22,7 +22,7 @@ const WeaveCloudDialog = ({ isOpen, onClose }) => {
         <div className="space-y-6">
           <div className="flex items-start gap-4">
             <MapPin className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
-            <span>Encontre um ponto laranja no mapa - estes são registros de memórias compartilhadas por outros usuários.</span>
+            <span>Encontre um ponto laranja no mapa - estes são registros de memórias compartilhadas por outros jogadores.</span>
           </div>
           
           <div className="flex items-start gap-4">

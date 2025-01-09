@@ -232,9 +232,8 @@ const CreateStoryPage = () => {
     <div className="min-h-screen p-4 md:p-8 bg-[url('/story.png')] bg-cover bg-center bg-no-repeat">
       <Card className="max-w-2xl mx-auto shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-orange-800">Colecionar névoas</CardTitle>
-          <CardDescription className="text-orange-600">Compartilhe sua voz com o mundo</CardDescription>
-          <CardContent>Cada história de áudio compartilhada fica conectada ao local onde foi criada, como uma névoa sonora pairando no ar.</CardContent>
+          <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">Colecionar névoas</CardTitle>
+          <CardDescription className="text-orange-600">Compartilhe uma história que alguem já lhe contou. Escolha um local na cidade e grave.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {showMediaAlert && (
