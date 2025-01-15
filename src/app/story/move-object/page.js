@@ -49,7 +49,7 @@ const SkiesInHandsPage = () => {
   const timerRef = useRef(null);
   const router = useRouter();
   const verifyTokenAndUsername = async (token, username) => {
-    const response = await fetch('http://localhost:5522/verify', {
+    const response = await fetch('https://ceusgame.com:5522/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -258,7 +258,7 @@ const SkiesInHandsPage = () => {
       if (uploadedImage) formData.append('media', uploadedImage);
       if (audioFile) formData.append('media', audioFile);
 
-      const response = await fetch('http://localhost:5522/stories', {
+      const response = await fetch('https://ceusgame.com:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

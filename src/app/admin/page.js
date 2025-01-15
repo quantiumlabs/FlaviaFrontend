@@ -121,7 +121,7 @@ const AdminDashboard = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Nenhum token encontrado');
 
-        const response = await fetch('http://localhost:5522/admin/stories', {
+        const response = await fetch('https://ceusgame.com:5522/admin/stories', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -184,7 +184,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Nenhum token encontrado');
 
-      const response = await fetch(`http://localhost:5522/stories/${storyId}`, {
+      const response = await fetch(`https://ceusgame.com:5522/stories/${storyId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

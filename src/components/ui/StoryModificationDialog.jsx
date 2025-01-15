@@ -30,7 +30,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
       formData.append('content', content);
       files.forEach(file => formData.append('media', file));
 
-      const response = await fetch(`http://localhost:5522/stories/${story.id}/modifications`, {
+      const response = await fetch(`https://ceusgame.com:5522/stories/${story.id}/modifications`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
