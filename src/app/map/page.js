@@ -141,34 +141,43 @@ const MapPage = () => {
       });
   }, [router]);
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        console.log('sucesso');
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            console.error("Permissão de localização negada.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            console.error("Localização indisponível.");
-            window.alert("Sua localização está indisponível. Por favor, tente recarregar a pagina ou verifique se o GPS está ativado.");
-            break;
-          case error.TIMEOUT:
-            console.error("Tempo para obter a localização expirou.");
-            break;
-          default:
-            console.error("Erro desconhecido.");
-            break;
-        }
+  
+  useEffect(() => {
+    const getLocation = () => {
+      if (!navigator.geolocation) {
+        console.error("Geolocalização não é suportada pelo navegador.");
+        return;
       }
-    );
-  } else {
-    console.error("Geolocalização não é suportada pelo navegador.");
-  }
+  
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          console.log("Localização obtida com sucesso:", { latitude, longitude });
+        },
+        (error) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              console.error("Permissão de localização negada.");
+              alert("Por favor, permita o acesso à localização nas configurações do navegador.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              console.error("Localização indisponível.");
+              alert("Sua localização está indisponível. Verifique se o GPS está ativado.");
+              break;
+            case error.TIMEOUT:
+              console.error("Tempo para obter a localização expirou.");
+              break;
+            default:
+              console.error("Erro desconhecido ao acessar a localização.");
+              break;
+          }
+        }
+      );
+    };
+  
+    getLocation();
+  }, []);
 
   const createPopupContent = (story) => {
     const popupContainer = document.createElement('div');
@@ -547,7 +556,7 @@ const MapPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (typeof window === 'undefined' || !mapContainer.current || map.current) return;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -841,10 +850,6 @@ const MapPage = () => {
           setShowModificationDialog(false);
           setSelectedStory(null);
         }}
-      />
-      <TutorialDialog 
-        isOpen={showTutorial} 
-        onClose={() => setShowTutorial(false)} 
       />
       <FirstTimeTutorial 
         isOpen={isFirstTimeUser} 
