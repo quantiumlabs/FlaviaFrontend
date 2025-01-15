@@ -45,7 +45,7 @@ export default function AuthPage() {
 
     try {
       const endpoint = isLogin ? 'login' : 'register';
-      const response = await fetch(`http://localhost:5522/auth/${endpoint}`, {
+      const response = await fetch(`https://ceusgame.com:5522/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -61,7 +61,7 @@ export default function AuthPage() {
 
       if (!isLogin) {
         localStorage.setItem('isFirstLogin', 'true'); // Marca como primeiro login
-        router.push('/story/create'); // Redireciona para o fluxo de registro
+        router.push('/map')
       } else {
         router.push('/map'); // Redireciona para o mapa
       }

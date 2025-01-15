@@ -40,7 +40,7 @@ const CreateStoryPage = () => {
   const router = useRouter();
 
   const verifyTokenAndUsername = async (token, username) => {
-    const response = await fetch('http://localhost:5522/verify', {
+    const response = await fetch('https://ceusgame.com:5522/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -209,7 +209,7 @@ const CreateStoryPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5522/stories', {
+      const response = await fetch('https://ceusgame.com:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
