@@ -86,7 +86,7 @@ const PixelTextTransition = ({ onComplete }) => {
             variants={letterVariants}
             initial="initial"
             animate={stage}
-            className="inline-block font-['Press_Start_2P'] text-6xl text-black"
+            className="inline-block font-['Press_Start_2P'] text-6xl text-orange"
           >
             {letter}
           </motion.span>
