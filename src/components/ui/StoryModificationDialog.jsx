@@ -26,6 +26,11 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
 
+      // Ensure at least content or file is provided
+      if (!content.trim() && files.length === 0) {
+        throw new Error('Você deve adicionar conteúdo ou selecionar uma imagem/áudio.');
+      }
+
       const formData = new FormData();
       formData.append('content', content);
       files.forEach(file => formData.append('media', file));
@@ -97,7 +102,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                   onClick={() => document.getElementById('file-upload').click()}
                 >
                   <FileImage className="w-4 h-4 mr-2" />
-                  {files.length ? `${files.length} files selected` : 'Adicionar foto (opcional)'}
+                  {files.length ? `${files.length} arquivos selecionados` : 'Adicionar foto ou áudio (opcional)'}
                 </Button>
                 <input
                   id="file-upload"
@@ -124,7 +129,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-gray-500">Audio</span>
+                          <span className="text-xs text-gray-500">Áudio</span>
                         </div>
                       )}
                       <button
@@ -146,7 +151,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={!content.trim() || isSubmitting}
+              disabled={isSubmitting || (!content.trim() && files.length === 0)}
             >
               {isSubmitting ? (
                 <>

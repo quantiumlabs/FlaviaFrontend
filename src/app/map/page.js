@@ -10,6 +10,7 @@ import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
 import TutorialDialog from '@/components/ui/TutorialDialog';
 import WeaveCloudDialog from '@/components/ui/WeaveCloudDialog';
 import FirstTimeTutorial from '@/components/ui/FirstTimeTutorial';
+import StoryDialog from '@/components/ui/StoryDialog';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   MoreVertical, LogOut, Trophy, Users, Cloud, 
-  Target, Apple, Map as MapIcon, Menu, X, ChevronRight
+  Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2
 } from 'lucide-react';
 
 
@@ -27,11 +28,15 @@ const MapPage = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [permissionGranted, setPermissionGranted] = useState(false);
   const [stories, setStories] = useState([]);
   const [user, setUser] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [showWeaveDialog, setShowWeaveDialog] = useState(false);
+  const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+  const [selectedStoryForDialog, setSelectedStoryForDialog] = useState(null);
   const router = useRouter();
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -100,15 +105,62 @@ const MapPage = () => {
     return data.valid;
   };
   
+  const getStoryTypeBadge = (type) => {
+    const types = {
+      OBJECT: { text: '🎯 Céus nas mãos', class: 'bg-purple-100 text-purple-800' },
+      COLLABORATIVE: { text: '👥 Céus cruzados', class: 'bg-blue-100 text-blue-800' },
+      PERSONAL: { text: '📝 Colecionar névoas', class: 'bg-orange-100 text-orange-800' }
+    };
+    const defaultType = { text: '📝 Colecionar névoas', class: 'bg-orange-100 text-orange-800' };
+    return types[type] || defaultType;
+  };
+  
+  
   const handleChallengeSelect = (challenge) => {
     setSelectedChallenge(challenge);
     setShowChallenges(false);
+  
+    // Lógica para abrir diretamente o diálogo ao clicar no marcador
     if (!challenge.locked && challenge.action) {
       challenge.action();
     } else if (!challenge.locked && challenge.route) {
       router.push(challenge.route);
     }
+  
+    // Verifica se o desafio tem uma história (ou qualquer outro dado relevante)
+    if (challenge.story) {
+      setSelectedStoryForDialog(challenge.story); // Definir a história a ser exibida no diálogo
+      setIsStoryDialogOpen(true); // Abre o diálogo diretamente
+    }
   };
+  
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    let interval = Math.floor(seconds / 31536000);
+    if (interval > 1) return interval + ' anos atrás';
+    if (interval === 1) return 'a um ano';
+    
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return interval + ' meses atrás';
+    if (interval === 1) return 'a um mês';
+    
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) return interval + ' dias atrás';
+    if (interval === 1) return 'Ontem';
+    
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) return interval + ' horas atrás';
+    if (interval === 1) return 'a uma hora';
+    
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) return interval + ' minutos atrás';
+    if (interval === 1) return 'a um minuto';
+    
+    return 'Agora';
+  };
+  
+
 
 
   useEffect(() => {
@@ -141,404 +193,41 @@ const MapPage = () => {
       });
   }, [router]);
 
-  
+
   useEffect(() => {
-    const getLocation = () => {
+    if (permissionGranted) {
       if (!navigator.geolocation) {
-        console.error("Geolocalização não é suportada pelo navegador.");
+        alert("Seu navegador não suporta geolocalização.");
         return;
       }
-  
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
+          setLocation({ latitude, longitude });
           console.log("Localização obtida com sucesso:", { latitude, longitude });
         },
         (error) => {
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              console.error("Permissão de localização negada.");
-              alert("Por favor, permita o acesso à localização nas configurações do navegador.");
+              alert("Você negou o acesso à localização. Permita para continuar.");
               break;
             case error.POSITION_UNAVAILABLE:
-              console.error("Localização indisponível.");
               alert("Sua localização está indisponível. Verifique se o GPS está ativado.");
               break;
             case error.TIMEOUT:
-              console.error("Tempo para obter a localização expirou.");
+              alert("Tempo para obter a localização expirou. Tente novamente.");
               break;
             default:
-              console.error("Erro desconhecido ao acessar a localização.");
+              alert("Erro desconhecido ao acessar a localização.");
               break;
           }
         }
       );
-    };
-  
-    getLocation();
-  }, []);
+    }
+  }, [permissionGranted]);
 
-  const createPopupContent = (story) => {
-    const popupContainer = document.createElement('div');
-    popupContainer.className = 'max-w-sm bg-white rounded-lg overflow-hidden shadow-lg';
-  
-    // Header section
-    const header = document.createElement('div');
-    header.className = 'px-4 py-3 border-b border-gray-100';
-  
-    // Story type badge
-    const typeBadge = document.createElement('span');
-    typeBadge.className = `inline-block px-2 py-1 text-xs font-semibold rounded-full mb-2 ${
-      story.type === 'OBJECT' ? 'bg-purple-100 text-purple-800' :
-      story.type === 'COLLABORATIVE' ? 'bg-blue-100 text-blue-800' :
-      'bg-orange-100 text-orange-800'
-    }`;
-    typeBadge.textContent = story.type === 'OBJECT' ? '🎯 Céus nas mãos' :
-                           story.type === 'COLLABORATIVE' ? '👥 Céus cruzados' :
-                           '📝 Colecionar névoas';
-    header.appendChild(typeBadge);
-  
-    // User(s) section
-    const userContainer = document.createElement('div');
-    userContainer.className = 'mt-2';
-  
-    const userList = document.createElement('div');
-    userList.className = 'flex flex-wrap gap-2';
-  
-    
-    // Handle different user displays based on story type
-    if (story.type === 'COLLABORATIVE') {
-      const uniqueUsers = [...new Set([story.user.username, ...(story.collaborators || [])])];
-      uniqueUsers.forEach(username => {
-        const userChip = document.createElement('div');
-        userChip.className = 'flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1';
-  
-        const avatar = document.createElement('div');
-        avatar.className = 'w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold';
-        avatar.textContent = username.charAt(0).toUpperCase();
-  
-        const name = document.createElement('span');
-        name.className = 'text-xs font-medium text-gray-700';
-        name.textContent = username;
-  
-        userChip.appendChild(avatar);
-        userChip.appendChild(name);
-        userList.appendChild(userChip);
-      });
-    } else {
-      const userChip = document.createElement('div');
-      userChip.className = 'flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1';
-  
-      const avatar = document.createElement('div');
-      avatar.className = 'w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold';
-      avatar.textContent = story.user.username.charAt(0).toUpperCase();
-  
-      const name = document.createElement('span');
-      name.className = 'text-xs font-medium text-gray-700';
-      name.textContent = story.user.username;
-  
-      userChip.appendChild(avatar);
-      userChip.appendChild(name);
-      userList.appendChild(userChip);
-    }
-  
-    userContainer.appendChild(userList);
-    header.appendChild(userContainer);
-  
-    // Timestamp
-    const timestamp = document.createElement('p');
-    timestamp.className = 'text-xs text-gray-500 mt-2';
-    timestamp.textContent = getTimeAgo(new Date(story.createdAt));
-    header.appendChild(timestamp);
-  
-    popupContainer.appendChild(header);
-  
-    // Content section
-    const content = document.createElement('div');
-    content.className = 'px-4 py-3';
-  
-    const storyContent = document.createElement('p');
-    storyContent.className = 'text-gray-700 text-sm leading-relaxed whitespace-pre-wrap';
-    storyContent.textContent = story.content;
-    content.appendChild(storyContent);
-  
-    popupContainer.appendChild(content);
-
-    if (!story.type || story.type === 'PERSONAL') {
-      const modifyButton = document.createElement('button');
-      modifyButton.className = 'mt-3 text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1';
-      modifyButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
-        Tecer uma nova versão
-      `;
-      modifyButton.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedStory(story);
-        setShowModificationDialog(true);
-        map.current.getCanvas().style.cursor = '';
-        const popup = document.getElementsByClassName('mapboxgl-popup');
-        if (popup.length) {
-          popup[0].remove();
-        }
-      };
-      content.appendChild(modifyButton);
-    }
-  
-    // Media section
-    if (story.mediaUrls && story.mediaUrls.length > 0) {
-      const mediaContainer = document.createElement('div');
-      mediaContainer.className = 'px-4 pb-3 grid gap-2';
-      if (story.mediaUrls.length > 1) {
-        mediaContainer.className += ' grid-cols-2';
-      }
-  
-      story.mediaUrls.forEach(url => {
-        if (url.startsWith('data:image/')) {
-          const imgWrapper = document.createElement('div');
-          imgWrapper.className = 'relative aspect-square rounded-lg overflow-hidden bg-gray-50';
-  
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = 'Story media';
-          img.className = 'w-full h-full object-cover transition-all duration-300 hover:scale-105 cursor-pointer';
-  
-          // Loading state
-          img.style.opacity = '0';
-          const loader = document.createElement('div');
-          loader.className = 'absolute inset-0 flex items-center justify-center';
-          loader.innerHTML = `
-            <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          `;
-  
-          imgWrapper.appendChild(loader);
-          imgWrapper.appendChild(img);
-  
-          // Add click handler for image expansion
-          img.onclick = (e) => {
-            e.stopPropagation(); // Prevent popup from closing
-  
-            // Create modal container
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4';
-            modal.style.animation = 'fadeIn 0.2s ease-out';
-  
-            // Create expanded image
-            const expandedImg = document.createElement('img');
-            expandedImg.src = url;
-            expandedImg.className = 'max-h-[90vh] max-w-[90vw] object-contain rounded-lg';
-            expandedImg.style.animation = 'zoomIn 0.3s ease-out';
-  
-            // Create close button
-            const closeButton = document.createElement('button');
-            closeButton.className = 'absolute top-4 right-4 text-white p-2 rounded-full hover:bg-white hover:bg-opacity-20';
-            closeButton.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            `;
-  
-            // Add click handlers
-            const closeModal = () => {
-              modal.style.animation = 'fadeOut 0.2s ease-out';
-              expandedImg.style.animation = 'zoomOut 0.2s ease-out';
-              setTimeout(() => modal.remove(), 200);
-            };
-  
-            closeButton.onclick = (e) => {
-              e.stopPropagation();
-              closeModal();
-            };
-  
-            modal.onclick = closeModal;
-  
-            // Prevent click on image from closing modal
-            expandedImg.onclick = (e) => e.stopPropagation();
-  
-            // Add keyboard support for closing
-            const handleEscape = (e) => {
-              if (e.key === 'Escape') {
-                closeModal();
-                document.removeEventListener('keydown', handleEscape);
-              }
-            };
-            document.addEventListener('keydown', handleEscape);
-  
-            // Assemble modal
-            modal.appendChild(expandedImg);
-            modal.appendChild(closeButton);
-            document.body.appendChild(modal);
-          };
-  
-          img.onload = () => {
-            img.style.opacity = '1';
-            loader.remove();
-          };
-  
-          mediaContainer.appendChild(imgWrapper);
-        } else if (url.startsWith('data:audio/')) {
-          const createAudioPlayer = (url) => {
-            const audioWrapper = document.createElement('div');
-            audioWrapper.className = 'bg-gray-50 rounded-lg p-3 col-span-2';
-        
-            const playerContainer = document.createElement('div');
-            playerContainer.className = 'flex items-center gap-3 bg-white rounded-lg p-2.5 shadow-sm';
-        
-            const playButton = document.createElement('button');
-            playButton.className = 'w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95';
-            playButton.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                </svg>
-            `;
-        
-            const audio = document.createElement('audio');
-            audio.preload = 'none'; // Disable preloading
-            const source = document.createElement('source');
-            source.src = url;
-            source.type = 'audio/mpeg';
-            audio.appendChild(source);
-        
-            let isPlaying = false;
-        
-            const togglePlay = () => {
-                if (isPlaying) {
-                    audio.pause();
-                } else {
-                    audio.play().catch((error) => {
-                        console.error('Playback failed:', error);
-                    });
-                }
-            };
-        
-            playButton.addEventListener('click', togglePlay);
-        
-            audio.addEventListener('play', () => {
-                isPlaying = true;
-                playButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                `;
-            });
-        
-            audio.addEventListener('pause', () => {
-                isPlaying = false;
-                playButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                    </svg>
-                `;
-            });
-        
-            playerContainer.appendChild(playButton);
-            audioWrapper.appendChild(playerContainer);
-            audioWrapper.appendChild(audio);
-        
-            return audioWrapper;
-        };
-  
-          mediaContainer.appendChild(createAudioPlayer(url));
-        }
-      });
-  
-      popupContainer.appendChild(mediaContainer);
-    }
-  
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
-      .mapboxgl-popup-content {
-        padding: 0 !important;
-        overflow: hidden !important;
-        max-width: 320px !important;
-        border-radius: 12px !important;
-      }
-  
-      .mapboxgl-popup-close-button {
-        right: 8px !important;
-        top: 8px !important;
-        color: #666 !important;
-        font-size: 16px !important;
-        padding: 4px 8px !important;
-        border-radius: 4px !important;
-        z-index: 1 !important;
-        transition: all 0.2s ease !important;
-      }
-  
-      .mapboxgl-popup-close-button:hover {
-        background-color: rgba(0, 0, 0, 0.05) !important;
-        color: #333 !important;
-      }
-  
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-  
-      @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
-      }
-  
-      @keyframes zoomIn {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-  
-      @keyframes zoomOut {
-        from {
-          opacity: 1;
-          transform: scale(1);
-        }
-        to {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-      }
-  
-      .story-media img {
-        animation: fadeIn 0.3s ease-in-out;
-      }
-    `;
-    document.head.appendChild(style);
-  
-    return popupContainer;
-  };
-  const getTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    let interval = Math.floor(seconds / 31536000);
-    if (interval > 1) return interval + 'anos atrás';
-    if (interval === 1) return 'a um ano';
-    
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) return interval + ' meses atrás';
-    if (interval === 1) return 'a um mês';
-    
-    interval = Math.floor(seconds / 86400);
-    if (interval > 1) return interval + ' dias atrás';
-    if (interval === 1) return 'Ontem';
-    
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) return interval + ' horas atrás';
-    if (interval === 1) return 'a uma hora';
-    
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) return interval + ' minutos atrás';
-    if (interval === 1) return 'a um minuto';
-    
-    return 'Agora';
-  };
 
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
@@ -688,6 +377,7 @@ const MapPage = () => {
   
       console.log('Histórias recuperadas:', processedStories);
   
+      // Remove any previous markers
       Object.values(storyMarkers.current).forEach((marker) => marker.remove());
       storyMarkers.current = {};
   
@@ -698,18 +388,18 @@ const MapPage = () => {
         }
   
         // Set the type to PERSONAL by default if it's missing
-        const storyType = story.type || 'PERSONAL'; // Fallback to 'PERSONAL' if undefined
+        const storyType = story.type || 'PERSONAL';
   
         // Change marker color based on the story type
         let markerColor;
         if (storyType === 'PERSONAL') {
-          markerColor = '#FF5722'; // Red color for PERSONAL
+          markerColor = '#FF5722';
         } else if (storyType === 'OBJECT') {
-          markerColor = '#9B4DCA'; // Purple color for OBJECT
+          markerColor = '#9B4DCA';
         } else if (storyType === 'COLLABORATIVE') {
-          markerColor = '#3B82F6'; // Blue color for COLLABORATIVE
+          markerColor = '#3B82F6';
         } else {
-          markerColor = '#9333EA'; // Default color
+          markerColor = '#9333EA';
         }
   
         const el = document.createElement('div');
@@ -727,11 +417,14 @@ const MapPage = () => {
   
         const marker = new mapboxgl.Marker(el)
           .setLngLat([parseFloat(story.longitude), parseFloat(story.latitude)])
-          .setPopup(
-            new mapboxgl.Popup({ offset: 25 })
-              .setDOMContent(createPopupContent(story))
-          )
           .addTo(map.current);
+  
+        // Ensure the click event triggers the dialog opening
+        el.addEventListener('click', () => {
+          console.log('Marker clicked for story ID:', story.id); // Debugging line to check if click works
+          setSelectedStoryForDialog(story);
+          setIsStoryDialogOpen(true);
+        });
   
         storyMarkers.current[story.id] = marker;
       });
@@ -743,7 +436,6 @@ const MapPage = () => {
       router.push('/auth');
     }
   }, [userLocation, router]);
-
   useEffect(() => {
     fetchAndUpdateStories();
     const interval = setInterval(fetchAndUpdateStories, 30000);
@@ -774,6 +466,7 @@ const MapPage = () => {
   return (
     <div className="relative h-[100dvh]" >
       <div ref={mapContainer} className="absolute inset-0" />
+
       
       {/* Modern floating header with glass effect */}
       <div className="absolute top-0 left-2 p-4 z-20">
@@ -861,6 +554,86 @@ const MapPage = () => {
           }
         }}
       />
+        <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            {selectedStoryForDialog && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStoryTypeBadge(selectedStoryForDialog.type).class}`}>
+                      {getStoryTypeBadge(selectedStoryForDialog.type).text}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {getTimeAgo(new Date(selectedStoryForDialog.createdAt))}
+                    </span>
+                  </div>
+                  <DialogTitle>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
+                        [...new Set([selectedStoryForDialog.user.username, ...(selectedStoryForDialog.collaborators || [])])].map((username) => (
+                          <div key={username} className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
+                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                              {username.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">{username}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
+                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                            {selectedStoryForDialog.user.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-xs font-medium text-gray-700">{selectedStoryForDialog.user.username}</span>
+                        </div>
+                      )}
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="mt-4">
+                  <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+                </div>
+
+                {selectedStoryForDialog.mediaUrls && selectedStoryForDialog.mediaUrls.length > 0 && (
+                  <div className="mt-4 grid gap-4 grid-cols-1">
+                    {selectedStoryForDialog.mediaUrls.map((url, index) => (
+                      <div key={index} className="relative">
+                        {url.startsWith('data:image/') ? (
+                          <img
+                            src={url}
+                            alt={`Story media ${index + 1}`}
+                            className="w-full h-auto rounded-lg object-cover"
+                          />
+                        ) : url.startsWith('data:audio/') ? (
+                          <div className="bg-gray-50 rounded-lg p-3">
+                            <audio controls className="w-full">
+                              <source src={url} type="audio/mpeg" />
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
+                  <button
+                    onClick={() => {
+                      setShowModificationDialog(true);
+                      setIsStoryDialogOpen(false);
+                      setSelectedStory(selectedStoryForDialog);
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    Tecer uma nova versão
+                  </button>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
     </div>
 
     
