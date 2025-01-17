@@ -472,10 +472,10 @@ const CreateCollabStoryPage = () => {
 	            <DialogTitle className="text-xl md:text-2xl text-blue-800">Desafio Céus Cruzados</DialogTitle>
 	            <DialogDescription className="pt-4 text-sm md:text-base text-gray-700">
 	              <p className="mb-4">
-                As histórias se cruzam. Juntos, vocês podem criar um local que só existe porque vocês se encontraram.
+	                Quando vocês se encontram, as histórias se cruzam. Juntos, vocês podem criar uma história que só existe porque vocês se encontraram.
 	              </p>
 	              <h1 className="font-semibold mb-4">
-	                Missão: Encontre o jogador mais próximo de você. Registre o local juntos com uma gravação ou foto.
+	                Missão: encontre o jogador mais próximo de você e tire uma foto.
 	              </h1>
 	            </DialogDescription>
 	          </DialogHeader>

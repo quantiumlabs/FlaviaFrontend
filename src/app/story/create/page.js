@@ -40,7 +40,7 @@ const CreateStoryPage = () => {
   const router = useRouter();
 
   const verifyTokenAndUsername = async (token, username) => {
-    const response = await fetch('http://localhost:5522/verify', {
+    const response = await fetch('https://ceusgame.com:5522/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -91,7 +91,6 @@ const CreateStoryPage = () => {
     const isFirstLogin = localStorage.getItem('isFirstLogin');
     if (isFirstLogin === 'true') {
       setShowWelcomeDialog(true);
-      localStorage.setItem('hasSeenTutorial', 'false');
     }
 
     const hideChallengeDialog = localStorage.getItem('hideChallengeDialog');
@@ -210,7 +209,7 @@ const CreateStoryPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5522/stories', {
+      const response = await fetch('https://ceusgame.com:5522/stories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -232,9 +231,9 @@ const CreateStoryPage = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-[url('/story.png')] bg-cover bg-center bg-no-repeat">
-      <Card className="max-w-2xl mx-auto shadow-lg bg-white/40 bg-opacity-70 backdrop-blur-md">
+      <Card className="max-w-2xl mx-auto shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-orange-800">Colecionar névoas</CardTitle>
+          <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">Colecionar névoas</CardTitle>
           <CardDescription className="text-orange-600">Compartilhe uma história que alguem já lhe contou. Escolha um local na cidade e grave.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -320,7 +319,7 @@ const CreateStoryPage = () => {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl text-orange-800">Bem-vindo a sua primeira experiêcia!</DialogTitle>
+            <DialogTitle className="text-2xl text-orange-800">Bem-vindo ao Céus!</DialogTitle>
             <DialogDescription className="pt-4 text-base text-gray-700">
               <p className="mb-4">
                 Você está prestes a começar uma jornada única de compartilhamento de histórias em áudio!

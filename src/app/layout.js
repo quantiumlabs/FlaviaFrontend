@@ -15,6 +15,7 @@ export const metadata = {
   description: 'Compartilhe histórias pelo mundo',
 };
 
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
