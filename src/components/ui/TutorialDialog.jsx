@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trophy, Map, Target, Users, Cloud, Apple, Swords } from 'lucide-react';
+import { Trophy, Map, Target, Users, Cloud, Leaf, Swords } from 'lucide-react';
 
 const TutorialDialog = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -28,7 +28,7 @@ const TutorialDialog = ({ isOpen, onClose }) => {
           description: "Crie histórias com outros jogadores"
         },
         {
-          icon: Apple,
+          icon: Leaf,
           title: "Céus nas mãos",
           description: "Compartilhe histórias de objetos"
         },
@@ -52,6 +52,10 @@ const TutorialDialog = ({ isOpen, onClose }) => {
         description: "Lá você pode aceitar pedidos de modificações das suas histórias ou sair da sua conta",
         icon: Users,
         color: "bg-purple-500"
+    },
+
+    {
+      title: "Para começar, observe as histórias ao seu redor.",
     }
   ];
 

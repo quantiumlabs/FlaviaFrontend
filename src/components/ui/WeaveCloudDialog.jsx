@@ -21,13 +21,13 @@ const WeaveCloudDialog = ({ isOpen, onClose }) => {
 
         <div className="space-y-6">
           <div className="flex items-start gap-4">
-            <MapPin className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
-            <span>Encontre um ponto laranja no mapa - estes são registros de memórias compartilhadas por outros jogadores.</span>
+            <Pencil className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
+            <span>Agora, é a sua vez de tecer algo novo nesse céu compartilhado. Adicione suas palavras, sua visão, seu olhar. Cada fio que você entrelaça transforma o que foi contado em algo maior. </span>
           </div>
           
           <div className="flex items-start gap-4">
-            <Pencil className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
-            <span>Ao clicar no ponto, você encontrará a opção "Tecer uma nova versão" - use-a para complementar a história original com sua própria perspectiva, criando uma nova camada de significado para aquele lugar especial.</span>
+            <MapPin className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
+            <span>Missão: Encontre um ponto laranja no mapa. Ao clicar nele, você poderá complementar a história com áudio, foto ou texto.</span>
           </div>
         </div>
 

@@ -219,6 +219,7 @@ const CreateStoryPage = () => {
 
       if (response.ok) {
         localStorage.removeItem('isFirstLogin');
+        localStorage.setItem('FirstStory', 'false');
         router.push('/map');
       }
     } catch (error) {

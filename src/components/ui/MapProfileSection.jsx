@@ -12,7 +12,7 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const isAdmin = user?.username?.toLowerCase() === 'admin';
+  const isAdmin = user?.username?.toLowerCase() === 'flavia';
 
   useEffect(() => {
     if (isOpen && user) {
