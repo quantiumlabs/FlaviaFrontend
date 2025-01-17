@@ -11,8 +11,8 @@ if (typeof window !== 'undefined') {
 }
 
 export const metadata = {
-  title: 'Cloud',
-  description: 'Share stories based on your location',
+  title: 'Céus',
+  description: 'Compartilhe histórias pelo mundo',
 };
 
 export default function RootLayout({ children }) {

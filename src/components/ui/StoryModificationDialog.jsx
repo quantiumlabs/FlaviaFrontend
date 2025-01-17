@@ -102,7 +102,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                   onClick={() => document.getElementById('file-upload').click()}
                 >
                   <FileImage className="w-4 h-4 mr-2" />
-                  {files.length ? `${files.length} arquivos selecionados` : 'Adicionar foto ou áudio (opcional)'}
+                  {files.length ? `${files.length} arquivos selecionados` : 'Adicionar foto (opcional)'}
                 </Button>
                 <input
                   id="file-upload"

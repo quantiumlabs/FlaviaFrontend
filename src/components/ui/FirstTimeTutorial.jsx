@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 const FirstTimeTutorial = ({ isOpen, onComplete }) => {
   const [step, setStep] = useState(0);
-  const [hasDeclinedOnce, setHasDeclinedOnce] = useState(false);
   const [timer, setTimer] = useState(30);
   const [showInitialDialog, setShowInitialDialog] = useState(true);
-  const [restartKey, setRestartKey] = useState(0); // Chave para forçar reinicialização
+  const [showWaitingDialog, setShowWaitingDialog] = useState(false);
+  const [showReadyButton, setShowReadyButton] = useState(false);
 
   const dialogContent = [
     {
@@ -28,22 +29,12 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
     },
   ];
 
-  // Reinicia o diálogo e o cronômetro
-  const resetDialog = () => {
-    setStep(0);
-    setTimer(30);
-    setShowInitialDialog(true);
-    setRestartKey((prev) => prev + 1); // Incrementa a chave para reiniciar os efeitos
-  };
-
   useEffect(() => {
     if (isOpen) {
-      // Exibe o diálogo inicial por 3 segundos
       const initialTimeout = setTimeout(() => {
         setShowInitialDialog(false);
       }, 5000);
 
-      // Atualiza o cronômetro
       const timerInterval = setInterval(() => {
         setTimer((prev) => {
           if (prev <= 1) {
@@ -59,48 +50,74 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
         clearInterval(timerInterval);
       };
     }
-  }, [isOpen, restartKey]); // Reinicia o efeito ao mudar a chave
+  }, [isOpen]);
 
   useEffect(() => {
-    // Avança os passos do diálogo
-    if (!showInitialDialog && timer === 0 && step < dialogContent.length - 1) {
+    if (!showInitialDialog && timer === 0 && step < dialogContent.length - 1 && !showWaitingDialog) {
       const stepTimeout = setTimeout(() => {
         setStep((prev) => prev + 1);
       }, 10000);
 
       return () => clearTimeout(stepTimeout);
     }
-  }, [showInitialDialog, timer, step]);
+  }, [showInitialDialog, timer, step, showWaitingDialog]);
 
   const handleNo = () => {
-    setHasDeclinedOnce(true);
-    resetDialog(); // Reinicia o fluxo
+    setShowWaitingDialog(true);
+    setShowReadyButton(true);
+
+    setTimeout(() => {
+      setShowWaitingDialog(false);
+      setShowInitialDialog(false);
+      setTimer(0);
+      setStep(dialogContent.length);
+    }, 5000);
   };
 
-  const getDeclineResponse = () => {
-    return hasDeclinedOnce ? "Continue caminhando até estar pronto" : "Caminhe!";
+  const handleReady = () => {
+    onComplete(true);
+  };
+
+  const calculateProgress = () => {
+    if (timer > 0) return 0;
+    return ((step + 1) / dialogContent.length) * 100;
   };
 
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Floating Timer */}
-      {timer > 0 && !showInitialDialog && (
-        <div className="fixed top-4 right-4 bg-white/90 backdrop-blur rounded-lg shadow-lg p-3 z-50">
-          <span className="text-lg font-medium">{timer}s</span>
+      {/* Ready Button */}
+      {showReadyButton && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+          <Button onClick={handleReady} className="px-8 py-2 bg-primary hover:bg-primary/90">
+            Estou pronto
+          </Button>
         </div>
       )}
 
+      {/* Waiting Dialog */}
+      {showWaitingDialog && (
+        <Dialog open={true} hideClose>
+          <DialogContent className="sm:max-w-lg" hideClose>
+            <div className="p-6 text-center">
+              <p className="text-lg">
+                Quando estiver pronto, pare e grave a sua história.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Main Dialog */}
-      {showInitialDialog || timer === 0 ? (
-        <Dialog open={true} onOpenChange={() => {}}>
-          <DialogContent className="sm:max-w-lg">
+      {!showWaitingDialog && !showReadyButton && (showInitialDialog || timer === 0) && step < dialogContent.length && (
+        <Dialog open={true} hideClose>
+          <DialogContent className="sm:max-w-lg" hideClose>
             <div className="p-6">
               {timer > 0 ? (
                 <div className="text-center space-y-4">
                   <p className="text-lg">
-                    Bem-vindo! Para começar, observe as histórias ao seu redor por {timer} segundos.
+                    Bem-vindo! Para começar, observe as histórias ao seu redor.
                   </p>
                   <p className="text-sm text-gray-500">
                     O diálogo irá desaparecer para que você possa observar melhor o ambiente...
@@ -108,6 +125,7 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  <Progress value={calculateProgress()} className="w-full mb-4" />
                   <p className={dialogContent[step].className}>
                     {dialogContent[step].message}
                   </p>
@@ -122,18 +140,12 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
                       </Button>
                     </div>
                   )}
-
-                  {hasDeclinedOnce && step === 0 && (
-                    <p className="text-center text-gray-600 mt-4">
-                      {getDeclineResponse()}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
           </DialogContent>
         </Dialog>
-      ) : null}
+      )}
     </>
   );
 };

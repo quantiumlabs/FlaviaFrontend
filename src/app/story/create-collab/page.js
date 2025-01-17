@@ -70,6 +70,27 @@ const CreateCollabStoryPage = () => {
   };
 
   useEffect(() => {
+    const setVH = () => {
+      // First we get the viewport height and we multiple it by 1% to get a value for a vh unit
+      const vh = window.innerHeight * 0.01;
+      // Then we set the value in the --vh custom property to the root of the document
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Initial set
+    setVH();
+
+    // Add event listener to reset on resize and orientation change
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+
+    return () => {
+      window.removeEventListener('resize', setVH);
+      window.removeEventListener('orientationchange', setVH);
+    };
+  }, []);
+  
+  useEffect(() => {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
   
@@ -246,211 +267,231 @@ const CreateCollabStoryPage = () => {
   
 
   return (
-    <div className="min-h-screen flex flex-col overflow-auto bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat">
-      <div className="flex-1 md:p-8 overflow-y-auto">
-        <Card className="max-w-2xl mx-auto shadow-lg my-8">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-800 font-['Press_Start_2P'] leading-loose">Céus Cruzados</CardTitle>
-          <CardDescription className="text-blue-600">Encontre o jogador mais próximo de você e tirem uma foto juntos.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Input
-            placeholder="Nome do outro jogador"
-            value={collaborator}
-            onChange={(e) => setCollaborator(e.target.value)}
-            className="text-lg p-6 border-2 border-blue-100 focus:border-blue-300"
-          />
+	  <div className="absolute inset-0 bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat">
+	        {/* Main scrollable container that uses the custom vh variable */}
+	        <div 
+	          className="absolute inset-0 overflow-y-auto"
+	          style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
+	        >
+	          <div className="container mx-auto px-4 py-8 max-w-4xl">
+	            <Card className="w-full shadow-lg mb-8">
+	            <CardHeader className="text-center space-y-4">
+	              <CardTitle className="text-xl md:text-2xl font-bold text-blue-800 font-['Press_Start_2P'] leading-loose break-words">
+	                Céus Cruzados
+	              </CardTitle>
+	              <CardDescription className="text-blue-600 text-sm md:text-base">
+	                Encontre o jogador mais próximo de você e tirem uma foto juntos.
+	              </CardDescription>
+	            </CardHeader>
 
-          <Textarea
-            placeholder="Descrição da ação"
-            value={storyContent}
-            onChange={(e) => setStoryContent(e.target.value)}
-            className="min-h-32 text-lg resize-none border-2 border-blue-100 focus:border-blue-300 rounded-lg p-4"
-          />
+	            <CardContent className="space-y-6">
+	              <div className="w-full">
+	                <Input
+	                  placeholder="Nome do outro jogador"
+	                  value={collaborator}
+	                  onChange={(e) => setCollaborator(e.target.value)}
+	                  className="text-base md:text-lg p-4 md:p-6 border-2 border-blue-100 focus:border-blue-300"
+	                />
+	              </div>
 
-          {showMediaAlert && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription>
-                Mídia adicionada com sucesso!
-              </AlertDescription>
-            </Alert>
-          )}
+	              <div className="w-full">
+	                <Textarea
+	                  placeholder="Descrição da ação"
+	                  value={storyContent}
+	                  onChange={(e) => setStoryContent(e.target.value)}
+	                  className="min-h-[120px] text-base md:text-lg resize-none border-2 border-blue-100 focus:border-blue-300 rounded-lg p-4"
+	                />
+	              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
-            >
-              <ImageIcon className="h-6 w-6 text-blue-500" />
-              <span className="text-blue-700">Adicionar Imagens</span>
-            </Button>
+	              {showMediaAlert && (
+	                <Alert className="bg-blue-50 border-blue-200">
+	                  <AlertDescription>
+	                    Mídia adicionada com sucesso!
+	                  </AlertDescription>
+	                </Alert>
+	              )}
 
-            <div className="h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
-              {!isRecording ? (
-                <Button
-                  onClick={startRecording}
-                  className="bg-red-500 hover:bg-red-400 transition-colors"
-                >
-                  <Mic className="h-5 w-5 mr-2" />
-                  Gravar Áudio
-                </Button>
-              ) : (
-                <div className="space-y-2 w-full">
-                  <div className="flex items-center justify-center gap-2 text-blue-700">
-                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    <span>{formatTime(recordingTime)}</span>
-                  </div>
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      onClick={pauseRecording}
-                      className="bg-blue-600 hover:bg-blue-500"
-                    >
-                      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      onClick={stopRecording}
-                      className="bg-red-500 hover:bg-red-400"
-                    >
-                      <Square className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+	              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+	                <Button
+	                  type="button"
+	                  variant="outline"
+	                  onClick={() => fileInputRef.current?.click()}
+	                  className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
+	                >
+	                  <ImageIcon className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+	                  <span className="text-blue-700 text-sm md:text-base">Adicionar Imagens</span>
+	                </Button>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            multiple
-            className="hidden"
-          />
+	                <div className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
+	                  {!isRecording ? (
+	                    <Button
+	                      onClick={startRecording}
+	                      className="bg-red-500 hover:bg-red-400 transition-colors"
+	                    >
+	                      <Mic className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+	                      <span className="text-sm md:text-base">Gravar Áudio</span>
+	                    </Button>
+	                  ) : (
+	                    <div className="space-y-2 w-full">
+	                      <div className="flex items-center justify-center gap-2 text-blue-700">
+	                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500 animate-pulse" />
+	                        <span className="text-sm md:text-base">{formatTime(recordingTime)}</span>
+	                      </div>
+	                      <div className="flex justify-center gap-2">
+	                        <Button
+	                          onClick={pauseRecording}
+	                          className="bg-blue-600 hover:bg-blue-500"
+	                        >
+	                          {isPaused ? <Play className="h-3 w-3 md:h-4 md:w-4" /> : <Pause className="h-3 w-3 md:h-4 md:w-4" />}
+	                        </Button>
+	                        <Button
+	                          onClick={stopRecording}
+	                          className="bg-red-500 hover:bg-red-400"
+	                        >
+	                          <Square className="h-3 w-3 md:h-4 md:w-4" />
+	                        </Button>
+	                      </div>
+	                    </div>
+	                  )}
+	                </div>
+	              </div>
 
-          {mediaFiles.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {mediaFiles.map((file, index) => (
-                <div key={index} className="relative group">
-                  {file.type.startsWith('image/') ? (
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-md group-hover:shadow-lg transition-shadow">
-                      <Image
-                        src={URL.createObjectURL(file)}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => setSelectedImage(URL.createObjectURL(file))}
-                        >
-                          <Maximize2 className="h-5 w-5 text-white" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative aspect-square rounded-lg bg-blue-50 flex flex-col items-center justify-center p-4 shadow-md group-hover:shadow-lg transition-shadow">
-                      <Mic className="h-8 w-8 mb-2 text-blue-500" />
-                      <audio
-                        src={URL.createObjectURL(file)}
-                        controls
-                        className="w-full mt-2"
-                      />
-                    </div>
-                  )}
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => {
-                      const newFiles = [...mediaFiles];
-                      newFiles.splice(index, 1);
-                      setMediaFiles(newFiles);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+	              <input
+	                type="file"
+	                ref={fileInputRef}
+	                onChange={handleImageUpload}
+	                accept="image/*"
+	                multiple
+	                className="hidden"
+	              />
 
-          <Button
-            onClick={handleSubmit}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 text-lg font-medium transition-colors"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Enviando História...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <Users className="h-5 w-5" />
-                <span>Criar História Colaborativa</span>
-              </div>
-            )}
-          </Button>
-        </CardContent>
-        </Card>
-      </div>
+	              {mediaFiles.length > 0 && (
+	                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+	                  {mediaFiles.map((file, index) => (
+	                    <div key={index} className="relative group">
+	                      {file.type.startsWith('image/') ? (
+	                        <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-md group-hover:shadow-lg transition-shadow">
+	                          <Image
+	                            src={URL.createObjectURL(file)}
+	                            alt="Preview"
+	                            fill
+	                            className="object-cover"
+	                          />
+	                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+	                            <Button
+	                              variant="ghost"
+	                              size="icon"
+	                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+	                              onClick={() => setSelectedImage(URL.createObjectURL(file))}
+	                            >
+	                              <Maximize2 className="h-4 w-4 md:h-5 md:w-5 text-white" />
+	                            </Button>
+	                          </div>
+	                        </div>
+	                      ) : (
+	                        <div className="relative aspect-square rounded-lg bg-blue-50 flex flex-col items-center justify-center p-2 md:p-4 shadow-md group-hover:shadow-lg transition-shadow">
+	                          <Mic className="h-6 w-6 md:h-8 md:w-8 mb-2 text-blue-500" />
+	                          <audio
+	                            src={URL.createObjectURL(file)}
+	                            controls
+	                            className="w-full mt-2"
+	                          />
+	                        </div>
+	                      )}
+	                      <Button
+	                        variant="destructive"
+	                        size="icon"
+	                        className="absolute -top-2 -right-2 h-6 w-6 md:h-8 md:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+	                        onClick={() => {
+	                          const newFiles = [...mediaFiles];
+	                          newFiles.splice(index, 1);
+	                          setMediaFiles(newFiles);
+	                        }}
+	                      >
+	                        <X className="h-3 w-3 md:h-4 md:w-4" />
+	                      </Button>
+	                    </div>
+	                  ))}
+	                </div>
+	              )}
 
-      <Dialog
-        open={!!selectedImage}
-        onOpenChange={() => setSelectedImage(null)}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Visualização de Imagem</DialogTitle>
-          </DialogHeader>
-          {selectedImage && (
-            <Image
-              src={selectedImage}
-              alt="Pré-visualização"
-              className="w-full h-auto rounded-lg"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-      <Dialog 
-        open={showChallengeDialog} 
-        onOpenChange={(open) => {
-          setShowChallengeDialog(open);
-          if (!open && hideChallenge) {
-            localStorage.setItem('hideChallengeDialog', 'true');
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl text-blue-800">Desafio Céus Cruzados</DialogTitle>
-            <DialogDescription className="pt-4 text-base text-gray-700">
-              <p className="mb-4">
-                Quando vocês se encontram, as histórias se cruzam. Juntos, vocês podem criar uma história que só existe porque vocês se encontraram.
-              </p>
-              <h1 className="font-semibold mb-4">
-                Missão: encontre o jogador mais próximo de você e tire uma foto.
-              </h1>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
-            <Button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-500 text-white"
-              onClick={() => setShowChallengeDialog(false)}
-            >
-              Entendi!
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+	              <Button
+	                onClick={handleSubmit}
+	                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-base md:text-lg font-medium transition-colors"
+	                disabled={isSubmitting}
+	              >
+	                {isSubmitting ? (
+	                  <div className="flex items-center justify-center gap-2">
+	                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+	                    <span>Enviando História...</span>
+	                  </div>
+	                ) : (
+	                  <div className="flex items-center justify-center gap-2">
+	                    <Users className="h-4 w-4 md:h-5 md:w-5" />
+	                    <span>Criar História Colaborativa</span>
+	                  </div>
+	                )}
+	              </Button>
+	            </CardContent>
+	          </Card>
+	        </div>
+	      </div>
+
+	      <Dialog
+	        open={!!selectedImage}
+	        onOpenChange={() => setSelectedImage(null)}
+	      >
+	        <DialogContent className="max-w-4xl">
+	          <DialogHeader>
+	            <DialogTitle>Visualização de Imagem</DialogTitle>
+	          </DialogHeader>
+	          {selectedImage && (
+	            <div className="relative w-full aspect-square">
+	              <Image
+	                src={selectedImage}
+	                alt="Pré-visualização"
+	                fill
+	                className="object-contain rounded-lg"
+	              />
+	            </div>
+	          )}
+	        </DialogContent>
+	      </Dialog>
+
+	      <Dialog 
+	        open={showChallengeDialog} 
+	        onOpenChange={(open) => {
+	          setShowChallengeDialog(open);
+	          if (!open && hideChallenge) {
+	            localStorage.setItem('hideChallengeDialog', 'true');
+	          }
+	        }}
+	      >
+	        <DialogContent className="sm:max-w-md">
+	          <DialogHeader>
+	            <DialogTitle className="text-xl md:text-2xl text-blue-800">Desafio Céus Cruzados</DialogTitle>
+	            <DialogDescription className="pt-4 text-sm md:text-base text-gray-700">
+	              <p className="mb-4">
+                As histórias se cruzam. Juntos, vocês podem criar um local que só existe porque vocês se encontraram.
+	              </p>
+	              <h1 className="font-semibold mb-4">
+	                Missão: Encontre o jogador mais próximo de você. Registre o local juntos com uma gravação ou foto.
+	              </h1>
+	            </DialogDescription>
+	          </DialogHeader>
+	          <DialogFooter className="sm:justify-center">
+	            <Button
+	              type="button"
+	              className="bg-blue-600 hover:bg-blue-500 text-white"
+	              onClick={() => setShowChallengeDialog(false)}
+	            >
+	              Entendi!
+	            </Button>
+	          </DialogFooter>
+	        </DialogContent>
+	      </Dialog>
+	    </div>
+	  );
+	};
 
 export default CreateCollabStoryPage;

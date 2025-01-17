@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   MoreVertical, LogOut, Trophy, Users, Cloud, 
-  Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2
+  Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2, Leaf
 } from 'lucide-react';
 
 
@@ -69,7 +69,7 @@ const MapPage = () => {
       id: 'Skies-In-Hands',
       title: 'Céus nas mãos',
       description: 'Mova um objeto e registre',
-      icon: Apple,
+      icon: Leaf,
       route: '/story/move-object',
       color: 'from-purple-500 to-pink-400'
     },
@@ -167,6 +167,7 @@ const MapPage = () => {
     const isFirstTime = localStorage.getItem('isFirstLogin') === 'true';
     if (isFirstTime) {
       setIsFirstTimeUser(true);
+      
     }
   }, []);
 
@@ -227,15 +228,37 @@ const MapPage = () => {
       );
     }
   }, [permissionGranted]);
+  
+  useEffect(() => {
+    const hasntSubmitted = localStorage.getItem('FirstStory') === 'true';
+    if (hasntSubmitted) {
+      router.push('/story/create');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial') === 'true';
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    } else {
+      setShowTutorial(false);
+  }
+}, []);
 
 
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-      localStorage.setItem('hasSeenTutorial', 'true');
+    const isFirstTime = localStorage.getItem('isFirstLogin');
+    if (isFirstTime === 'true') {
+      localStorage.setItem('hasSeenTutorial', 'false');
     }
+    else {
+      setShowTutorial(false);
+    }
+
   }, []);
+
+
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -544,21 +567,26 @@ const MapPage = () => {
           setSelectedStory(null);
         }}
       />
+      <TutorialDialog 
+        isOpen={showTutorial} 
+        onClose={() => setShowTutorial(false)} 
+      />
       <FirstTimeTutorial 
         isOpen={isFirstTimeUser} 
         onComplete={(shouldRedirect) => {
           setIsFirstTimeUser(false);
-          localStorage.setItem('isFirstLogin', 'false');
           if (shouldRedirect) {
+            localStorage.setItem('FirstStory', 'true');
             router.push('/story/create');
           }
         }}
       />
-        <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            {selectedStoryForDialog && (
-              <>
-                <DialogHeader>
+ <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          {selectedStoryForDialog && (
+            <>
+              <DialogHeader className="sticky top-0 bg-white pb-4 z-10">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStoryTypeBadge(selectedStoryForDialog.type).class}`}>
                       {getStoryTypeBadge(selectedStoryForDialog.type).text}
@@ -567,73 +595,83 @@ const MapPage = () => {
                       {getTimeAgo(new Date(selectedStoryForDialog.createdAt))}
                     </span>
                   </div>
-                  <DialogTitle>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
-                        [...new Set([selectedStoryForDialog.user.username, ...(selectedStoryForDialog.collaborators || [])])].map((username) => (
-                          <div key={username} className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
-                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
-                              {username.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-xs font-medium text-gray-700">{username}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
-                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
-                            {selectedStoryForDialog.user.username.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-xs font-medium text-gray-700">{selectedStoryForDialog.user.username}</span>
-                        </div>
-                      )}
-                    </div>
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="mt-4">
-                  <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+                  <button
+                    onClick={() => setIsStoryDialogOpen(false)}
+                    className="rounded-full p-1.5 hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="h-4 w-4 text-gray-500" />
+                  </button>
                 </div>
-
-                {selectedStoryForDialog.mediaUrls && selectedStoryForDialog.mediaUrls.length > 0 && (
-                  <div className="mt-4 grid gap-4 grid-cols-1">
-                    {selectedStoryForDialog.mediaUrls.map((url, index) => (
-                      <div key={index} className="relative">
-                        {url.startsWith('data:image/') ? (
-                          <img
-                            src={url}
-                            alt={`Story media ${index + 1}`}
-                            className="w-full h-auto rounded-lg object-cover"
-                          />
-                        ) : url.startsWith('data:audio/') ? (
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <audio controls className="w-full">
-                              <source src={url} type="audio/mpeg" />
-                              Your browser does not support the audio element.
-                            </audio>
+                <DialogTitle>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
+                      [...new Set([selectedStoryForDialog.user.username, ...(selectedStoryForDialog.collaborators || [])])].map((username) => (
+                        <div key={username} className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
+                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                            {username.charAt(0).toUpperCase()}
                           </div>
-                        ) : null}
+                          <span className="text-xs font-medium text-gray-700">{username}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
+                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                          {selectedStoryForDialog.user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">{selectedStoryForDialog.user.username}</span>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                </DialogTitle>
+              </DialogHeader>
 
-                {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
+              <div className="mt-4">
+                <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+              </div>
+
+              {selectedStoryForDialog.mediaUrls && selectedStoryForDialog.mediaUrls.length > 0 && (
+                <div className="mt-4 grid gap-4 grid-cols-1">
+                  {selectedStoryForDialog.mediaUrls.map((url, index) => (
+                    <div key={index} className="relative">
+                      {url.startsWith('data:image/') ? (
+                        <img
+                          src={url}
+                          alt={`Story media ${index + 1}`}
+                          className="w-full h-auto rounded-lg object-contain max-h-[60vh]"
+                        />
+                      ) : url.startsWith('data:audio/') ? (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <audio controls className="w-full">
+                            <source src={url} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
+                <div className="mt-4 sticky bottom-0 bg-white pt-2">
                   <button
                     onClick={() => {
                       setShowModificationDialog(true);
                       setIsStoryDialogOpen(false);
                       setSelectedStory(selectedStoryForDialog);
                     }}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                    style={{ display: isFirstTimeUser ? 'none' : 'flex' }}
+                    className="w-full items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                   >
                     <Edit2 className="h-4 w-4" />
                     Tecer uma nova versão
                   </button>
-                )}
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
 
     

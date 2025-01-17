@@ -69,6 +69,22 @@ const SkiesInHandsPage = () => {
   };
 
     useEffect(() => {
+      const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+
+      setVH();
+      window.addEventListener('resize', setVH);
+      window.addEventListener('orientationchange', setVH);
+
+      return () => {
+        window.removeEventListener('resize', setVH);
+        window.removeEventListener('orientationchange', setVH);
+      };
+    }, []);
+
+    useEffect(() => {
       const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user'));
     
@@ -277,16 +293,24 @@ const SkiesInHandsPage = () => {
     }
   };
 
+
   return (
-    <div className="min-h-screen bg-[url('/object.png')] bg-cover bg-center bg-no-repeat p-4 md:p-8">
-      <Card className="max-w-2xl mx-auto shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-purple-800 font-['Press_Start_2P'] leading-loose">Céus nas Mãos</CardTitle>
-          <CardDescription className="text-purple-600">
-            Desloque um objeto para um novo local e registre sua história.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <div className="absolute inset-0 bg-[url('/object.png')] bg-cover bg-center bg-no-repeat">
+      <div 
+        className="absolute inset-0 overflow-y-auto px-4 md:px-8"
+        style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
+      >
+        <div className="py-8">
+          <Card className="max-w-2xl mx-auto shadow-lg mb-8">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl md:text-2xl font-bold text-purple-800 font-['Press_Start_2P'] leading-loose break-words">
+                Céus nas Mãos
+              </CardTitle>
+              <CardDescription className="text-purple-600">
+                Desloque um objeto para um novo local e registre sua história.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
           <Input
             placeholder="Nome do objeto deslocado"
             value={objectContent}
@@ -379,17 +403,19 @@ const SkiesInHandsPage = () => {
               'Registrar Objeto Deslocado'
             )}
           </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+          </Card>
+        </div>
+      </div>
       <Dialog 
-          open={showChallengeDialog} 
-          onOpenChange={(open) => {
-            setShowChallengeDialog(open);
-            if (!open && hideChallenge) {
-              localStorage.setItem('hideChallengeDialog', 'true');
-            }
-          }}
-        >
+        open={showChallengeDialog} 
+        onOpenChange={(open) => {
+          setShowChallengeDialog(open);
+          if (!open && hideChallenge) {
+            localStorage.setItem('hideChallengeDialog', 'true');
+          }
+        }}
+      >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-2xl text-purple-800">Desafio Céus nas Mãos</DialogTitle>
@@ -412,7 +438,7 @@ const SkiesInHandsPage = () => {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
     </div>
   );
 };
