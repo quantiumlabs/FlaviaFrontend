@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import 'dotenv/config';
 import MapProfileSection from '@/components/ui/MapProfileSection';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
@@ -39,6 +40,7 @@ const MapPage = () => {
   const [selectedStoryForDialog, setSelectedStoryForDialog] = useState(null);
   const router = useRouter();
   const mapContainer = useRef(null);
+  const [isTracking, setIsTracking] = useState(true);
   const map = useRef(null);
   const geolocateControl = useRef(null);
   const storyMarkers = useRef({});
@@ -237,26 +239,12 @@ const MapPage = () => {
   }, [router]);
 
   useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial') === 'true';
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-    } else {
-      setShowTutorial(false);
-  }
-}, []);
-
-
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-    const isFirstTime = localStorage.getItem('isFirstLogin');
-    if (isFirstTime === 'true') {
-      localStorage.setItem('hasSeenTutorial', 'false');
+    if (localStorage.getItem('ShowTutorial') === 'true') {
+      setShowTutorial(true)
+      localStorage.setItem('ShowTutorial', 'false');
     }
-    else {
-      setShowTutorial(false);
-    }
-
   }, []);
+
 
 
 
@@ -273,8 +261,8 @@ const MapPage = () => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v11',
-      zoom: 40,
-      center: [0, 0]
+      zoom: 18,
+      center: [userLocation.lng, userLocation.lat]
     });
 
     geolocateControl.current = new mapboxgl.GeolocateControl({
@@ -293,10 +281,11 @@ const MapPage = () => {
       setUserLocation({ lng: longitude, lat: latitude });
       setLocationError(null);
       
+      // Smooth map transition
       map.current.flyTo({
         center: [longitude, latitude],
         zoom: 18,
-        speed: 3.5
+        speed: 3
       });
     });
 
@@ -471,11 +460,7 @@ const MapPage = () => {
     router.push('/');
   };
 
-  const handleCenterMap = () => {
-    if (geolocateControl.current) {
-      geolocateControl.current.trigger();
-    }
-  };
+
 
   // Check for first-time login
   useEffect(() => {
@@ -487,9 +472,12 @@ const MapPage = () => {
   }, [router]);
   
   return (
-    <div className="relative h-[100dvh]" >
+    <div className="relative h-[100dvh]">
       <div ref={mapContainer} className="absolute inset-0" />
 
+
+      
+  
       
       {/* Modern floating header with glass effect */}
       <div className="absolute top-0 left-2 p-4 z-20">
@@ -503,23 +491,27 @@ const MapPage = () => {
               >
                 {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-              <Button
-                variant="secondary"
-                className="bg-white/50 backdrop-blur-md shadow-lg hover:bg-white/90 transition-all duration-300"
-                onClick={() => setShowChallenges(true)}
-                style={{ display: isFirstTimeUser ? 'none' : 'flex' }}
-              >
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                Aceita um desafio?
-              </Button>
+
+            <Button
+              variant="secondary"
+              className="bg-white/80 backdrop-blur-lg shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:bg-white/95 transition-all duration-300 border border-white/40 flex items-center gap-2"
+              onClick={() => setShowChallenges(true)}
+              style={{ display: isFirstTimeUser ? 'none' : 'flex' }}
+            >
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <span className="text-gray-700 font-medium">Aceita um desafio?</span>
+            </Button>
             </div>
-            
-          </div>
+            </div>
         </div>
       </div>
 
+  
       <MapProfileSection user={user} onLogout={handleLogout} isOpen={isMenuOpen} />
 
+
+
+  
 
       {/* Challenges Dialog */}
       <Dialog open={showChallenges} onOpenChange={setShowChallenges}>
@@ -555,33 +547,45 @@ const MapPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+  
+      {/* Other dialogs */}
       <WeaveCloudDialog 
         isOpen={showWeaveDialog} 
         onClose={() => setShowWeaveDialog(false)}
       />
+      
       <StoryModificationDialog 
         story={selectedStory}
         isOpen={showModificationDialog}
         onClose={() => {
           setShowModificationDialog(false);
           setSelectedStory(null);
+          fetchAndUpdateStories(); // Refresh stories after modification
         }}
       />
+  
       <TutorialDialog 
         isOpen={showTutorial} 
-        onClose={() => setShowTutorial(false)} 
+        onClose={() => {
+          setShowTutorial(false);
+          localStorage.setItem('hasSeenTutorial', 'true');
+        }} 
       />
+  
       <FirstTimeTutorial 
         isOpen={isFirstTimeUser} 
         onComplete={(shouldRedirect) => {
           setIsFirstTimeUser(false);
           if (shouldRedirect) {
             localStorage.setItem('FirstStory', 'true');
+            localStorage.setItem('hasSeenTutorial', 'false');
             router.push('/story/create');
           }
         }}
       />
- <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+  
+      {/* Story Dialog */}
+      <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           {selectedStoryForDialog && (
             <>
@@ -599,8 +603,7 @@ const MapPage = () => {
                     onClick={() => setIsStoryDialogOpen(false)}
                     className="rounded-full p-1.5 hover:bg-gray-100 transition-colors"
                   >
-                    <X className="h-4 w-4 text-gray-500" />
-                  </button>
+                                      </button>
                 </div>
                 <DialogTitle>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -624,19 +627,21 @@ const MapPage = () => {
                   </div>
                 </DialogTitle>
               </DialogHeader>
-
+  
               <div className="mt-4">
                 <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
               </div>
-
+  
               {selectedStoryForDialog.mediaUrls && selectedStoryForDialog.mediaUrls.length > 0 && (
                 <div className="mt-4 grid gap-4 grid-cols-1">
                   {selectedStoryForDialog.mediaUrls.map((url, index) => (
                     <div key={index} className="relative">
                       {url.startsWith('data:image/') ? (
-                        <img
+                        <Image
                           src={url}
                           alt={`Story media ${index + 1}`}
+                          width={600}
+                          height={400}
                           className="w-full h-auto rounded-lg object-contain max-h-[60vh]"
                         />
                       ) : url.startsWith('data:audio/') ? (
@@ -651,7 +656,7 @@ const MapPage = () => {
                   ))}
                 </div>
               )}
-
+  
               {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
                 <div className="mt-4 sticky bottom-0 bg-white pt-2">
                   <button
@@ -673,9 +678,6 @@ const MapPage = () => {
         </DialogContent>
       </Dialog>
     </div>
-
-    
-  );
-};
+  );}
 
 export default MapPage;

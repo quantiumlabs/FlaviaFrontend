@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trophy, Map, Target, Users, Cloud, Leaf, Swords } from 'lucide-react';
+import { Trophy, Map, Target, Users, Cloud, Leaf, Swords, Crosshair } from 'lucide-react';
 
 const TutorialDialog = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -48,15 +48,17 @@ const TutorialDialog = ({ isOpen, onClose }) => {
       color: "bg-green-500"
     },
     {
-        title: "Sua pagina pessoal",
-        description: "Lá você pode aceitar pedidos de modificações das suas histórias ou sair da sua conta",
-        icon: Users,
-        color: "bg-purple-500"
+      title: "Explorando Livremente",
+      description: "Para navegar livremente pelo mapa:\n• Clique duas vezes no botão de GPS no canto superior direito para desativar o rastreamento\n• Agora você pode arrastar o mapa e explorar outras regiões\n• Clique novamente no botão de GPS quando quiser voltar à sua localização",
+      icon: Crosshair,
+      color: "bg-indigo-500"
     },
-
     {
-      title: "Para começar, observe as histórias ao seu redor.",
-    }
+      title: "Sua pagina pessoal",
+      description: "Lá você pode aceitar pedidos de modificações das suas histórias ou sair da sua conta",
+      icon: Users,
+      color: "bg-purple-500"
+    },
   ];
 
   const handleNext = () => {

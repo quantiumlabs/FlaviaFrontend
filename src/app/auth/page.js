@@ -33,6 +33,18 @@ export default function AuthPage() {
 
   const validateForm = () => formData.username && formData.password;
 
+  const getErrorMessage = (message) => {
+    // Map backend error messages to user-friendly Portuguese messages
+    const errorMessages = {
+      'Invalid credentials': 'Senha incorreta ou usuário não encontrado',
+      'Username and password are required': 'Por favor, preencha todos os campos',
+      'Usuário já existe': 'Este nome de usuário já está em uso',
+      'default': 'Houve um erro nos nossos servidores. Por favor, tente novamente mais tarde.'
+    };
+
+    return errorMessages[message] || errorMessages.default;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -60,13 +72,13 @@ export default function AuthPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
 
       if (!isLogin) {
-        localStorage.setItem('isFirstLogin', 'true'); // Marca como primeiro login
-        router.push('/map')
+        localStorage.setItem('isFirstLogin', 'true');
+        router.push('/map');
       } else {
-        router.push('/map'); // Redireciona para o mapa
+        router.push('/map');
       }
     } catch (error) {
-      setError(error.message);
+      setError(getErrorMessage(error.message));
     } finally {
       setIsLoading(false);
     }
@@ -88,19 +100,19 @@ export default function AuthPage() {
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
-            <Input
-              id="username"
-              name="username"
-              placeholder="Nome de usuário"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, username: e.target.value }))
-              }
-              disabled={isLoading}
-              required
-              className="pr-10 text-base sm:text-lg" // Adiciona tamanho de fonte responsivo
-              aria-label="Nome de usuário"
-            />
+              <Input
+                id="username"
+                name="username"
+                placeholder="Nome de usuário"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, username: e.target.value }))
+                }
+                disabled={isLoading}
+                required
+                className="pr-10 text-base sm:text-lg"
+                aria-label="Nome de usuário"
+              />
               <label htmlFor="username" className="absolute inset-y-0 right-0 flex items-center px-3">
               </label>
             </div>
@@ -117,7 +129,7 @@ export default function AuthPage() {
                 disabled={isLoading}
                 required
                 minLength={6}
-                className="pr-10 text-base sm:text-lg" // Adiciona tamanho de fonte responsivo
+                className="pr-10 text-base sm:text-lg"
                 aria-label="Senha"
               />
               <button
@@ -131,7 +143,7 @@ export default function AuthPage() {
             </div>
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>Houve um erro nos nossos servidores. Por favor, tente novamente mais tarde.</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             <Button

@@ -18,6 +18,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
     setFiles(selectedFiles);
   };
 
+  
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -25,29 +26,34 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
       
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
-
-      // Ensure at least content or file is provided
+  
       if (!content.trim() && files.length === 0) {
         throw new Error('Você deve adicionar conteúdo ou selecionar uma imagem/áudio.');
       }
-
+  
+      // Create FormData instead of sending JSON
       const formData = new FormData();
       formData.append('content', content);
-      files.forEach(file => formData.append('media', file));
-
+      
+      // Append each file to FormData
+      files.forEach(file => {
+        formData.append('media', file);
+      });
+  
       const response = await fetch(`https://ceusgame.com:5522/stories/${story.id}/modifications`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type - it will be set automatically for FormData
         },
         body: formData
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Ops! Parece que algo deu errado :( Tente novamente mais tarde.');
       }
-
+  
       setSuccess(true);
       setTimeout(() => {
         onClose();
@@ -61,7 +67,6 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
       setIsSubmitting(false);
     }
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">

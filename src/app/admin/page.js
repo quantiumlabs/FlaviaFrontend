@@ -1,7 +1,7 @@
 'use client';
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import mapboxgl from 'mapbox-gl';
 import {
   Table,
   TableBody,
@@ -10,6 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,31 +32,37 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Trash2,
   ArrowLeft,
   Filter,
-  Play,
-  Pause,
-  AlertTriangle,
-  Image as ImageIcon,
-  Music,
   Search,
   MessageSquare,
-  Keyboard,
+  AlertTriangle,
+  ImageIcon,
   Menu,
-  X
+  MapPin,
+  List,
+  X,
+  Play,
+  Pause,
+  Music,
+  ChevronLeft,
+  ChevronRight,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import ImageLightbox from 'react-image-lightbox';
 import debounce from 'lodash/debounce';
-
 // Content filters object
 const contentFilters = {
   Xingamentos: [
@@ -82,6 +94,7 @@ const contentFilters = {
 const AdminDashboard = () => {
   const [stories, setStories] = useState([]);
   const [filteredStories, setFilteredStories] = useState([]);
+  const [mediaDialog, setMediaDialog] = useState({ isOpen: false, type: null, urls: [], currentIndex: 0 });
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,19 +104,101 @@ const AdminDashboard = () => {
   const [images, setImages] = useState([]);
   const [audioPlayer, setAudioPlayer] = useState({ url: null, isPlaying: false });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedStory, setSelectedStory] = useState(null);
+  const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+  const [map, setMap] = useState(null);
+  const [markers, setMarkers] = useState([]);
   const router = useRouter();
-
-  // Create audio element ref
+  const mapContainer = React.useRef(null);
   const audioRef = React.useRef(null);
 
-
+  // Initialize audio element
   useEffect(() => {
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio();
     }
   }, []);
 
-  // Memoized content checker
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainer.current || map) return;
+
+    const newMap = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [-43.2096, -22.9035], // Default center (Rio de Janeiro)
+      zoom: 10
+    });
+
+    setMap(newMap);
+
+    return () => {
+      newMap?.remove();
+    };
+  }, []);
+
+  // Update markers when stories change
+  useEffect(() => {
+    if (!map || !filteredStories.length) return;
+
+    // Remove existing markers
+    markers.forEach(marker => marker.remove());
+    const newMarkers = [];
+
+    filteredStories.forEach(story => {
+      const el = document.createElement('div');
+      el.className = 'story-marker';
+      el.style.cssText = `
+        width: 12px;
+        height: 12px;
+        background: #FF5722;
+        border-radius: 50%;
+        border: 2px solid white;
+        cursor: pointer;
+        box-shadow: 0 0 0 2px rgba(255,87,34,0.3);
+      `;
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([story.longitude, story.latitude])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(`
+              <div class="p-2">
+                <div class="font-bold">${story.user.username}</div>
+                <p class="text-sm">${story.content.substring(0, 100)}...</p>
+                <button class="mt-2 text-blue-600 text-sm">Ver detalhes</button>
+              </div>
+            `)
+        )
+        .addTo(map);
+
+      el.addEventListener('click', () => {
+        setSelectedStory(story);
+        setIsStoryDialogOpen(true);
+      });
+
+      newMarkers.push(marker);
+    });
+
+    setMarkers(newMarkers);
+
+    // Fit bounds to show all markers
+    if (newMarkers.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      filteredStories.forEach(story => {
+        bounds.extend([story.longitude, story.latitude]);
+      });
+      map.fitBounds(bounds, { padding: 50 });
+    }
+
+    return () => {
+      newMarkers.forEach(marker => marker.remove());
+    };
+  }, [map, filteredStories]);
+
+  // Check content for filters
   const checkContent = useMemo(() => (content) => {
     const results = {};
     Object.entries(contentFilters).forEach(([category, words]) => {
@@ -157,7 +252,7 @@ const AdminDashboard = () => {
   // Filter stories
   useEffect(() => {
     let filtered = stories;
-    window.alert('A pagina de administrador ainda está em desenvolvimento, é recomendado que ela seja usada apenas no computador');
+
     if (search) {
       filtered = filtered.filter(
         (story) =>
@@ -217,65 +312,12 @@ const AdminDashboard = () => {
     }
   };
 
-
-  // Get content flags
+  // Get content flags for a story
   const getContentFlags = (content) => {
     const flags = checkContent(content);
     return Object.entries(flags)
       .filter(([_, hasFlag]) => hasFlag)
       .map(([category]) => category);
-  };
-
-  // Media preview component
-  const renderMediaPreview = (story) => {
-    const hasImages = story.mediaUrls?.some(url => url.startsWith('data:image'));
-    const hasAudio = story.mediaUrls?.some(url => url.startsWith('data:audio'));
-
-    return (
-      <div className="flex gap-2">
-        {hasImages && (
-          <div className="flex gap-1">
-            {story.mediaUrls
-              .filter(url => url.startsWith('data:image'))
-              .map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`media-${index}`}
-                  className="w-12 h-12 rounded cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => {
-                    setImages(story.mediaUrls.filter(u => u.startsWith('data:image')));
-                    setPhotoIndex(index);
-                    setIsOpen(true);
-                  }}
-                />
-              ))}
-          </div>
-        )}
-        {hasAudio && (
-          <div className="flex gap-1">
-            {story.mediaUrls
-              .filter(url => url.startsWith('data:audio'))
-              .map((url, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleAudioPlayback(url)}
-                  className="flex items-center gap-1"
-                >
-                  {audioPlayer.isPlaying && audioPlayer.url === url ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                  <Music className="h-4 w-4" />
-                </Button>
-              ))}
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Stats card component
@@ -292,220 +334,230 @@ const AdminDashboard = () => {
     </Card>
   );
 
-  // Mobile story card component
-  const MobileStoryCard = ({ story }) => (
-    <Card className="mb-4">
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className="font-medium">{story.user.username}</span>
-            <span className="text-xs text-muted-foreground">
-              {new Date(story.createdAt).toLocaleDateString()}
-            </span>
+  // Media preview component
+  const MediaPreviewDialog = () => {
+    const { isOpen, type, urls, currentIndex } = mediaDialog;
+    
+    if (!isOpen) return null;
+
+    const handlePrevious = () => {
+      setMediaDialog(prev => ({
+        ...prev,
+        currentIndex: (prev.currentIndex - 1 + urls.length) % urls.length
+      }));
+    };
+
+    const handleNext = () => {
+      setMediaDialog(prev => ({
+        ...prev,
+        currentIndex: (prev.currentIndex + 1) % urls.length
+      }));
+    };
+
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && setMediaDialog(prev => ({ ...prev, isOpen: false }))}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {type === 'image' ? 'Visualização de Imagem' : 'Player de Áudio'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative">
+            {type === 'image' ? (
+              <div className="relative aspect-video flex items-center justify-center bg-black/5 rounded-md">
+                <img
+                  src={urls[currentIndex]}
+                  alt={`Imagem ${currentIndex + 1}`}
+                  className="max-h-[60vh] max-w-full object-contain"
+                />
+                {urls.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2"
+                      onClick={handlePrevious}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={handleNext}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-black/5 rounded-md">
+                <audio
+                  src={urls[currentIndex]}
+                  controls
+                  className="w-full"
+                />
+                {urls.length > 1 && (
+                  <div className="flex justify-center gap-2 mt-4">
+                    <Button onClick={handlePrevious}>Anterior</Button>
+                    <Button onClick={handleNext}>Próximo</Button>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="absolute top-2 right-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMediaDialog(prev => ({ ...prev, isOpen: false }))}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDelete(story.id)}
-            className="hover:bg-destructive hover:text-destructive-foreground"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-        <p className="text-sm mb-2">{story.content}</p>
-        {getContentFlags(story.content).length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {getContentFlags(story.content).map((flag) => (
-              <Badge key={flag} variant="secondary" className="text-xs">
-                {flag}
-              </Badge>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // Updated Media Preview Component
+  const renderMediaPreview = (story) => {
+    const images = story.mediaUrls?.filter(url => url.startsWith('data:image')) || [];
+    const audioFiles = story.mediaUrls?.filter(url => url.startsWith('data:audio')) || [];
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {images.length > 0 && (
+          <div className="flex gap-1 flex-wrap">
+            {images.map((url, index) => (
+              <button
+                key={`image-${index}`}
+                onClick={() => setMediaDialog({
+                  isOpen: true,
+                  type: 'image',
+                  urls: images,
+                  currentIndex: index
+                })}
+                className="relative w-12 h-12 rounded overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <img
+                  src={url}
+                  alt={`media-${index}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             ))}
           </div>
         )}
-        <div className="text-xs text-muted-foreground mb-2">
-          {`${story.latitude.toFixed(4)}, ${story.longitude.toFixed(4)}`}
-        </div>
-        {renderMediaPreview(story)}
-      </CardContent>
-    </Card>
-  );
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        {audioFiles.length > 0 && (
+          <div className="flex gap-1 flex-wrap">
+            {audioFiles.map((url, index) => (
+              <Button
+                key={`audio-${index}`}
+                variant="outline"
+                size="sm"
+                onClick={() => setMediaDialog({
+                  isOpen: true,
+                  type: 'audio',
+                  urls: audioFiles,
+                  currentIndex: index
+                })}
+                className="flex items-center gap-1"
+              >
+                <Music className="h-4 w-4" />
+                <span className="sr-only">Reproduzir áudio {index + 1}</span>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="p-4 flex justify-center items-center h-screen">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center gap-4 p-6">
-            <AlertTriangle className="h-12 w-12 text-red-500" />
-            <p className="text-lg font-semibold text-center">{error}</p>
-            <Button onClick={() => router.push('/map')}>Voltar ao Mapa</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-background overflow-auto">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b sticky top-0 bg-background z-10">
         <div className="container flex h-16 items-center px-4">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" onClick={() => router.push('/map')}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-lg font-semibold hidden md:block">Painel de Administração</h2>
-          </div>
+          <Button variant="ghost" size="icon" onClick={() => router.push('/map')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="ml-4 text-lg font-semibold">Painel de Administração</h2>
+          
           <div className="ml-auto flex items-center space-x-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden md:flex">
-                  <Keyboard className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Atalhos do Teclado</SheetTitle>
-                  <SheetDescription>
-                    Comandos rápidos para aumentar sua produtividade
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Buscar</span>
-                      <kbd className="px-2 py-1 bg-muted rounded text-sm">⌘ K</kbd>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Limpar busca/fechar modal</span>
-                      <kbd className="px-2 py-1 bg-muted rounded text-sm">Esc</kbd>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Play/Pause áudio</span>
-                      <kbd className="px-2 py-1 bg-muted rounded text-sm">Space</kbd>
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-80">
-                <div className="flex flex-col h-full">
-                  <SheetHeader>
-                    <SheetTitle>Menu</SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-1 overflow-y-auto py-4">
-                    <nav className="space-y-4">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          document.querySelector('input[type="text"]')?.focus();
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        <Search className="mr-2 h-4 w-4" />
-                        Buscar
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="w-full justify-start">
-                            <Filter className="mr-2 h-4 w-4" />
-                            Filtros
-                            {activeFilters.length > 0 && (
-                              <Badge variant="secondary" className="ml-2">
-                                {activeFilters.length}
-                              </Badge>
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
-                          <DropdownMenuLabel>Tipos de Conteúdo</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {Object.keys(contentFilters).map((filter) => (
-                            <DropdownMenuItem
-                              key={filter}
-                              className="flex items-center justify-between"
-                              onClick={() => {
-                                setActiveFilters(
-                                  activeFilters.includes(filter)
-                                    ? activeFilters.filter((f) => f !== filter)
-                                    : [...activeFilters, filter]
-                                );
-                              }}
-                            >
-                              {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                              {activeFilters.includes(filter) && (
-                                <Badge variant="secondary">Ativo</Badge>
-                              )}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </nav>
-                  </div>
-                </div>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-4 mt-4">
+                  <Button variant="ghost" className="justify-start" onClick={() => setActiveView('list')}>
+                    <List className="h-4 w-4 mr-2" />
+                    Lista de Histórias
+                  </Button>
+                  <Button variant="ghost" className="justify-start" onClick={() => setActiveView('map')}>
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Mapa de Histórias
+                  </Button>
+                </nav>
               </SheetContent>
             </Sheet>
           </div>
         </div>
       </div>
-
-      <div className="container py-4 space-y-6">
-        {/* Stats Grid */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+  
+      {/* Main Content */}
+      <div className="container px-4 py-6 space-y-6">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             title="Total de Histórias"
             value={stories.length}
-            subtitle={`+${stories.filter(s => {
-              const date = new Date(s.createdAt);
-              const now = new Date();
-              return date > new Date(now - 24*60*60*1000);
-            }).length} nas últimas 24h`}
+            subtitle="Todas as histórias"
             icon={MessageSquare}
           />
           <StatsCard
-            title="Conteúdo Suspeito"
-            value={stories.filter(story => getContentFlags(story.content).length > 0).length}
-            subtitle={`${((stories.filter(story => getContentFlags(story.content).length > 0).length / stories.length) * 100).toFixed(1)}% do total`}
-            icon={AlertTriangle}
+            title="Histórias com Imagens"
+            value={stories.filter(s => s.mediaUrls?.some(url => url.startsWith('data:image'))).length}
+            subtitle="Com anexos de imagem"
+            icon={ImageIcon}
           />
           <StatsCard
-            title="Com Mídia"
-            value={stories.filter(story => story.mediaUrls?.length > 0).length}
-            subtitle={`${((stories.filter(story => story.mediaUrls?.length > 0).length / stories.length) * 100).toFixed(1)}% do total`}
-            icon={ImageIcon}
+            title="Histórias com Áudio"
+            value={stories.filter(s => s.mediaUrls?.some(url => url.startsWith('data:audio'))).length}
+            subtitle="Com anexos de áudio"
+            icon={Music}
+          />
+          <StatsCard
+            title="Conteúdo Flagged"
+            value={stories.filter(s => getContentFlags(s.content).length > 0).length}
+            subtitle="Histórias com alertas"
+            icon={AlertTriangle}
           />
         </div>
   
-        {/* Search and Filters - Desktop */}
-        <div className="hidden md:flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar por usuário ou conteúdo..."
-              onChange={(e) => debouncedSearch(e.target.value)}
-            />
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar histórias..."
+                className="pl-10"
+                onChange={(e) => debouncedSearch(e.target.value)}
+              />
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Filter className="h-4 w-4 mr-2" />
                 Filtros
                 {activeFilters.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
@@ -515,23 +567,23 @@ const AdminDashboard = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Tipos de Conteúdo</DropdownMenuLabel>
+              <DropdownMenuLabel>Categorias de Conteúdo</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {Object.keys(contentFilters).map((filter) => (
                 <DropdownMenuItem
                   key={filter}
-                  className="flex items-center justify-between"
                   onClick={() => {
-                    setActiveFilters(
-                      activeFilters.includes(filter)
-                        ? activeFilters.filter((f) => f !== filter)
-                        : [...activeFilters, filter]
-                    );
+                    setActiveFilters((prev) =>
+                      prev.includes(filter)
+                        ? prev.filter((f) => f !== filter)
+                        : [...prev, filter]
+                    )
                   }}
+                  className="flex items-center justify-between"
                 >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  {filter}
                   {activeFilters.includes(filter) && (
-                    <Badge variant="secondary">Ativo</Badge>
+                    <X className="h-4 w-4" />
                   )}
                 </DropdownMenuItem>
               ))}
@@ -539,128 +591,224 @@ const AdminDashboard = () => {
           </DropdownMenu>
         </div>
   
-        {/* Search Input - Mobile */}
-        <div className="md:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-9 w-full"
-              placeholder="Buscar..."
-              onChange={(e) => debouncedSearch(e.target.value)}
-            />
-          </div>
-        </div>
+        {/* Content Tabs */}
+        <Tabs defaultValue="list" className="space-y-4">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="list" className="flex-1 sm:flex-initial">
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </TabsTrigger>
+            <TabsTrigger value="map" className="flex-1 sm:flex-initial">
+              <MapPin className="h-4 w-4 mr-2" />
+              Mapa
+            </TabsTrigger>
+          </TabsList>
   
-        {/* Content */}
-        <Card className="overflow-hidden">
-        <ScrollArea className="md:max-h-[600px] h-[50vh] overflow-y-auto">
-        {/* Desktop Table View */}
-                  <div className="hidden md:block">
+          <TabsContent value="list">
+            <div className="rounded-md border">
+              <ScrollArea className="h-[calc(100vh-24rem)]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-48">Usuário</TableHead>
+                      <TableHead>Usuário</TableHead>
                       <TableHead>Conteúdo</TableHead>
-                      <TableHead className="w-32">Data</TableHead>
-                      <TableHead className="w-40">Localização</TableHead>
-                      <TableHead className="w-32">Mídia</TableHead>
-                      <TableHead className="w-20">Ações</TableHead>
+                      <TableHead className="hidden md:table-cell">Localização</TableHead>
+                      <TableHead className="hidden md:table-cell">Mídia</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {filteredStories.map((story) => (
-                    <TableRow key={story.id}>
-                      <TableCell className="font-medium">{story.user.username}</TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <p className="line-clamp-2">{story.content}</p>
-                          {getContentFlags(story.content).length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {getContentFlags(story.content).map((flag) => (
-                                <Badge
-                                  key={flag}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {flag}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(story.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {`${story.latitude.toFixed(4)}, ${story.longitude.toFixed(4)}`}
-                        </span>
-                      </TableCell>
-                      <TableCell>{renderMediaPreview(story)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(story.id)}
-                          className="hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                    {filteredStories.map((story) => (
+                      <TableRow key={story.id}>
+                        <TableCell className="font-medium">{story.user.username}</TableCell>
+                        <TableCell>
+                          <div className="max-w-[300px]">
+                            <p className="truncate">{story.content}</p>
+                            {getContentFlags(story.content).length > 0 && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {getContentFlags(story.content).map((flag) => (
+                                  <Badge key={flag} variant="destructive" className="text-xs">
+                                    {flag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (map) {
+                                map.flyTo({
+                                  center: [story.longitude, story.latitude],
+                                  zoom: 15
+                                });
+                              }
+                            }}
+                          >
+                            <MapPin className="h-4 w-4 mr-2" />
+                            Ver no mapa
+                          </Button>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {renderMediaPreview(story)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(story.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </div>
+          </TabsContent>
   
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-4 p-4">
-              {filteredStories.map((story) => (
-                <MobileStoryCard key={story.id} story={story} />
-              ))}
+          <TabsContent value="map">
+            <div className="h-[60vh] sm:h-[600px] rounded-md border overflow-hidden">
+              <div ref={mapContainer} className="h-full w-full" />
             </div>
-          </ScrollArea>
-        </Card>
-  
-        {/* Empty State */}
-        {filteredStories.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Search className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">Nenhuma história encontrada</p>
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                {search || activeFilters.length > 0
-                  ? 'Tente ajustar seus filtros de busca'
-                  : 'Não há histórias para exibir no momento'}
-              </p>
-              {(search || activeFilters.length > 0) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearch('');
-                    setActiveFilters([]);
-                  }}
-                >
-                  Limpar filtros
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
   
-      {/* Image Lightbox */}
-      {isOpen && (
-        <ImageLightbox
-          mainSrc={images[photoIndex]}
-          nextSrc={images[(photoIndex + 1) % images.length]}
-          prevSrc={images[(photoIndex + images.length - 1) % images.length]}
-          onCloseRequest={() => setIsOpen(false)}
-          onMovePrevRequest={() => setPhotoIndex((photoIndex + images.length - 1) % images.length)}
-          onMoveNextRequest={() => setPhotoIndex((photoIndex + 1) % images.length)}
-        />
-      )}
+      {/* Story Dialog */}
+      <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalhes da História</DialogTitle>
+          </DialogHeader>
+          {selectedStory && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-1">Usuário</h4>
+                <p>{selectedStory.user.username}</p>
+              </div>
+              <div>
+                <h4 className="font-medium mb-1">Conteúdo</h4>
+                <p>{selectedStory.content}</p>
+                {getContentFlags(selectedStory.content).length > 0 && (
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {getContentFlags(selectedStory.content).map((flag) => (
+                      <Badge key={flag} variant="destructive" className="text-xs">
+                        {flag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium mb-1">Mídia</h4>
+                {renderMediaPreview(selectedStory)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+  
+      {/* Media Preview Dialog */}
+      <Dialog 
+        open={mediaDialog.isOpen} 
+        onOpenChange={(open) => !open && setMediaDialog(prev => ({ ...prev, isOpen: false }))}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {mediaDialog.type === 'image' ? 'Visualização de Imagem' : 'Player de Áudio'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative">
+            {mediaDialog.type === 'image' ? (
+              <div className="relative aspect-video flex items-center justify-center bg-black/5 rounded-md">
+                <img
+                  src={mediaDialog.urls[mediaDialog.currentIndex]}
+                  alt={`Imagem ${mediaDialog.currentIndex + 1}`}
+                  className="max-h-[60vh] max-w-full object-contain"
+                />
+                {mediaDialog.urls.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2"
+                      onClick={() => {
+                        setMediaDialog(prev => ({
+                          ...prev,
+                          currentIndex: (prev.currentIndex - 1 + prev.urls.length) % prev.urls.length
+                        }));
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={() => {
+                        setMediaDialog(prev => ({
+                          ...prev,
+                          currentIndex: (prev.currentIndex + 1) % prev.urls.length
+                        }));
+                      }}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-black/5 rounded-md">
+                <audio
+                  src={mediaDialog.urls[mediaDialog.currentIndex]}
+                  controls
+                  className="w-full"
+                />
+                {mediaDialog.urls.length > 1 && (
+                  <div className="flex justify-center gap-2 mt-4">
+                    <Button
+                      onClick={() => {
+                        setMediaDialog(prev => ({
+                          ...prev,
+                          currentIndex: (prev.currentIndex - 1 + prev.urls.length) % prev.urls.length
+                        }));
+                      }}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setMediaDialog(prev => ({
+                          ...prev,
+                          currentIndex: (prev.currentIndex + 1) % prev.urls.length
+                        }));
+                      }}
+                    >
+                      Próximo
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2"
+              onClick={() => setMediaDialog(prev => ({ ...prev, isOpen: false }))}
+            >
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );}
 
