@@ -29,11 +29,12 @@ const CreateStoryPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cloudLocation, setCloudLocation] = useState(null);
   const [isLocationAvailable, setIsLocationAvailable] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
   const [showMediaAlert, setShowMediaAlert] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showChallengeDialog, setShowChallengeDialog] = useState(true);
-  const [hideChallenge, setHideChallenge] = useState(false);
-
+  const [showFirstStoryDialog, setShowFirstStoryDialog] = useState(false);
+  const [isFirstStory, setIsFirstStory] = useState(false);
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -58,6 +59,16 @@ const CreateStoryPage = () => {
     const data = await response.json();
     return data.valid;
   };
+
+  useEffect(() => {
+    const firstStory = localStorage.getItem('FirstStory');
+    if (firstStory === 'true') {
+      setShowLogout(true);
+      setIsFirstStory(true);
+      setShowChallengeDialog(false);
+      setShowFirstStoryDialog(true);
+    }
+  }, []);
 
     useEffect(() => {
       const token = localStorage.getItem('token');
@@ -218,8 +229,14 @@ const CreateStoryPage = () => {
       });
 
       if (response.ok) {
-        localStorage.removeItem('isFirstLogin');
         localStorage.setItem('FirstStory', 'false');
+        // Set hasSeenTutorial to false to trigger the tutorial after first story
+        if (localStorage.getItem('isFirstLogin') === 'true') {
+          localStorage.setItem('ShowTutorial', 'true');
+
+        }
+        localStorage.removeItem('hideChallengeDialog');
+        localStorage.setItem('isFirstLogin', 'false');
         router.push('/map');
       }
     } catch (error) {
@@ -230,155 +247,208 @@ const CreateStoryPage = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-[url('/story.png')] bg-cover bg-center bg-no-repeat">
-      <Card className="max-w-2xl mx-auto shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">Colecionar névoas</CardTitle>
-          <CardDescription className="text-orange-600">Compartilhe uma história que alguem já lhe contou. Escolha um local na cidade e grave.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {showMediaAlert && (
-            <Alert className="bg-orange-50 border-orange-200">
-              <AlertDescription>
-                Áudio gravado com sucesso!
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div>
-            <div className="h-24 border-2 border-dashed border-orange-200 bg-orange-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
-              {!isRecording ? (
-                <Button
-                  onClick={startRecording}
-                  className="bg-red-500 hover:bg-red-400 transition-colors"
-                >
-                  <Mic className="h-5 w-5 mr-2" />
-                  Gravar Áudio
-                </Button>
-              ) : (
-                <div className="space-y-2 w-full">
-                  <div className="flex items-center justify-center gap-2 text-orange-700">
-                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    <span>{formatTime(recordingTime)}</span>
+      <div className="min-h-screen p-4 md:p-8 bg-[url('/story.png')] bg-cover bg-center bg-no-repeat">
+        <Card className="max-w-2xl mx-auto shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">
+              {isFirstStory ? 'Sua primeira história' : 'Colecionar névoas'}
+            </CardTitle>
+            <CardDescription className="text-orange-600">
+              {isFirstStory 
+                ? 'Agora é sua vez de contar uma história. Escolha um local especial e compartilhe sua experiência.'
+                : 'Compartilhe uma história que alguem já lhe contou. Escolha um local na cidade e grave.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {showMediaAlert && (
+              <Alert className="bg-orange-50 border-orange-200">
+                <AlertDescription>
+                  Áudio gravado com sucesso!
+                </AlertDescription>
+              </Alert>
+            )}
+  
+            <div>
+              <div className="h-24 border-2 border-dashed border-orange-200 bg-orange-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
+                {!isRecording ? (
+                  <Button
+                    onClick={startRecording}
+                    className="bg-red-500 hover:bg-red-400 transition-colors"
+                  >
+                    <Mic className="h-5 w-5 mr-2" />
+                    Gravar Áudio
+                  </Button>
+                ) : (
+                  <div className="space-y-2 w-full">
+                    <div className="flex items-center justify-center gap-2 text-orange-700">
+                      <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                      <span>{formatTime(recordingTime)}</span>
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        onClick={pauseRecording}
+                        className="bg-orange-600 hover:bg-orange-500"
+                      >
+                        {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        onClick={stopRecording}
+                        className="bg-red-500 hover:bg-red-400"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      onClick={pauseRecording}
-                      className="bg-orange-600 hover:bg-orange-500"
-                    >
-                      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      onClick={stopRecording}
-                      className="bg-red-500 hover:bg-red-400"
-                    >
-                      <Square className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {audioFile && (
-            <div className="rounded-lg bg-orange-50 p-4 shadow-md">
-              <audio
-                src={URL.createObjectURL(audioFile)}
-                controls
-                className="w-full"
-              />
-            </div>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white py-6 text-lg font-medium transition-colors"
-            disabled={isSubmitting || !audioFile}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Enviando História...</span>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <Send className="h-5 w-5" />
-                <span>Compartilhar História</span>
+            </div>
+  
+            {audioFile && (
+              <div className="rounded-lg bg-orange-50 p-4 shadow-md">
+                <audio
+                  src={URL.createObjectURL(audioFile)}
+                  controls
+                  className="w-full"
+                />
               </div>
             )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Dialog 
-        open={showWelcomeDialog} 
-        onOpenChange={(open) => {
-          setShowWelcomeDialog(open);
-          if (!open) localStorage.setItem('isFirstLogin', 'false');
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl text-orange-800">Bem-vindo ao Céus!</DialogTitle>
-            <DialogDescription className="pt-4 text-base text-gray-700">
-              <p className="mb-4">
-                Você está prestes a começar uma jornada única de compartilhamento de histórias em áudio!
-              </p>
-              <p className="mb-4">
-                No Céus, cada história sonora que você compartilha fica conectada ao local onde foi criada, como uma névoa de memórias pairando no ar.
-              </p>
-              <p className="mb-4">
-                Compartilhe suas experiências através da sua voz, criando memórias sonoras únicas que outros jogadores poderão descobrir.
-              </p>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
+  
             <Button
-              type="button"
-              className="bg-orange-600 hover:bg-orange-500 text-white"
-              onClick={() => {
-                setShowWelcomeDialog(false);
-                localStorage.setItem('isFirstLogin', 'false');
-              }}
+              onClick={handleSubmit}
+              className="w-full bg-orange-600 hover:bg-orange-500 text-white py-6 text-lg font-medium transition-colors"
+              disabled={isSubmitting || !audioFile}
             >
-              Começar minha história
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Enviando História...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Send className="h-5 w-5" />
+                  <span>Compartilhar História</span>
+                </div>
+              )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog 
-          open={showChallengeDialog} 
+          </CardContent>
+        </Card>
+  
+        <Dialog 
+          open={showWelcomeDialog} 
           onOpenChange={(open) => {
-            setShowChallengeDialog(open);
+            setShowWelcomeDialog(open);
           }}
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-2xl text-orange-800">Desafio Colecionar Névoas</DialogTitle>
+              <DialogTitle className="text-2xl text-orange-800">Bem-vindo ao Céus!</DialogTitle>
               <DialogDescription className="pt-4 text-base text-gray-700">
                 <p className="mb-4">
-                  Cada história que você encontra, cada narrativa que você ouve, se torna parte do céu que você desenha. Colecionar é mais que ouvir: é conectar memórias.
+                  Você está prestes a começar uma jornada única de compartilhamento de histórias em áudio!
                 </p>
-                <p className="font-semibold mb-4">
-                  Missão: Compartilhe uma história que alguém já lhe contou, um momento único que ficou gravado na sua memória ou capture a história de um desconhecido na cidade.
+                <p className="mb-4">
+                  No Céus, cada história sonora que você compartilha fica conectada ao local onde foi criada, como uma névoa de memórias pairando no ar.
                 </p>
-
+                <p className="mb-4">
+                  Compartilhe suas experiências através da sua voz, criando memórias sonoras únicas que outros jogadores poderão descobrir.
+                </p>
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-center">
               <Button
                 type="button"
                 className="bg-orange-600 hover:bg-orange-500 text-white"
-                onClick={() => setShowChallengeDialog(false)}
+                onClick={() => {
+                  setShowWelcomeDialog(false);
+                }}
               >
-                Entendi!
+                Começar minha história
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-    </div>
-  );
-};
+  
+        {!isFirstStory && (
+          <Dialog 
+            open={showChallengeDialog} 
+            onOpenChange={(open) => {
+              setShowChallengeDialog(open);
+            }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-orange-800">Desafio Colecionar Névoas</DialogTitle>
+                <DialogDescription className="pt-4 text-base text-gray-700">
+                  <p className="mb-4">
+                    Cada história que você encontra, cada narrativa que você ouve, se torna parte do céu que você desenha. Colecionar é mais que ouvir: é conectar memórias.
+                  </p>
+                  <p className="font-semibold mb-4">
+                    Missão: Compartilhe uma história que alguém já lhe contou, um momento único que ficou gravado na sua memória ou capture a história de um desconhecido na cidade.
+                  </p>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="sm:justify-center">
+                <Button
+                  type="button"
+                  className="bg-orange-600 hover:bg-orange-500 text-white"
+                  onClick={() => setShowChallengeDialog(false)}
+                >
+                  Entendi!
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+  
+        {isFirstStory && (
+          <Dialog 
+            open={showFirstStoryDialog} 
+            onOpenChange={(open) => {
+              setShowFirstStoryDialog(open);
+            }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-orange-800">Agora é sua vez!</DialogTitle>
+                <DialogDescription className="pt-4 text-base text-gray-700">
+                  <p className="mb-4">
+                    Você já ouviu histórias incríveis pela cidade. Agora chegou o momento de compartilhar a sua própria história!
+                  </p>
+                  <p className="mb-4">
+                    Encontre um lugar especial, um momento único, uma memória que você queira eternizar neste espaço.
+                  </p>
+                  <p className="font-semibold mb-4">
+                    Sua voz, sua história, sua névoa no céu da cidade.
+                  </p>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="sm:justify-center">
+                <Button
+                  type="button"
+                  className="bg-orange-600 hover:bg-orange-500 text-white"
+                  onClick={() => setShowFirstStoryDialog(false)}
+                >
+                  Vamos começar!
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+  
+        {showLogout && (
+          <Button
+            onClick={() => {
+              localStorage.removeItem('user');
+              localStorage.removeItem('token');
+              router.push('/');
+            }}
+            className="fixed bottom-4 right-4 bg-orange-50/90 hover:bg-orange-100/90 text-orange-800 shadow-md backdrop-blur-sm transition-all"
+          >
+            Logout
+          </Button>
+        )}
+      </div>
+    );
+  }
 
 export default CreateStoryPage;

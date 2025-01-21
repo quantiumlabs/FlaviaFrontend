@@ -311,16 +311,26 @@ const CreateCollabStoryPage = () => {
 	                </Alert>
 	              )}
 
-	              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-	                <Button
-	                  type="button"
-	                  variant="outline"
-	                  onClick={() => fileInputRef.current?.click()}
-	                  className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
-	                >
-	                  <ImageIcon className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-	                  <span className="text-blue-700 text-sm md:text-base">Adicionar Imagens</span>
-	                </Button>
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+						<input
+						type="file"
+						id="file-upload"
+						accept="image/*"
+						capture
+						onChange={handleImageUpload}
+						className="hidden"
+						ref={fileInputRef}
+						/>
+						
+						<Button
+						type="button"
+						variant="outline"
+						onClick={() => fileInputRef.current?.click()}
+						className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
+						>
+						<ImageIcon className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+						<span className="text-blue-700 text-sm md:text-base">Adicionar Imagens</span>
+						</Button>
 
 	                <div className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
 	                  {!isRecording ? (

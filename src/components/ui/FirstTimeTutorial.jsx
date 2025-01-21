@@ -9,6 +9,7 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
   const [showInitialDialog, setShowInitialDialog] = useState(true);
   const [showWaitingDialog, setShowWaitingDialog] = useState(false);
   const [showReadyButton, setShowReadyButton] = useState(false);
+  const [nextDialogTimer, setNextDialogTimer] = useState(10); // Track time to next dialog
 
   const dialogContent = [
     {
@@ -54,11 +55,20 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
 
   useEffect(() => {
     if (!showInitialDialog && timer === 0 && step < dialogContent.length - 1 && !showWaitingDialog) {
-      const stepTimeout = setTimeout(() => {
-        setStep((prev) => prev + 1);
-      }, 10000);
+      setNextDialogTimer(10); // Reset timer for next dialog
+      
+      const nextDialogInterval = setInterval(() => {
+        setNextDialogTimer((prev) => {
+          if (prev <= 0) {
+            clearInterval(nextDialogInterval);
+            setStep((prevStep) => prevStep + 1);
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
 
-      return () => clearTimeout(stepTimeout);
+      return () => clearInterval(nextDialogInterval);
     }
   }, [showInitialDialog, timer, step, showWaitingDialog]);
 
@@ -80,7 +90,8 @@ const FirstTimeTutorial = ({ isOpen, onComplete }) => {
 
   const calculateProgress = () => {
     if (timer > 0) return 0;
-    return ((step + 1) / dialogContent.length) * 100;
+    // Calculate progress based on time remaining until next dialog
+    return ((10 - nextDialogTimer) / 10) * 100;
   };
 
   if (!isOpen) return null;
