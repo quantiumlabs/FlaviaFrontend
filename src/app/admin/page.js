@@ -1,7 +1,9 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import mapboxgl from 'mapbox-gl';
+
 import {
   Table,
   TableBody,
@@ -54,6 +56,7 @@ import {
   MapPin,
   List,
   X,
+  Loader2,
   Play,
   Pause,
   Music,
@@ -64,32 +67,12 @@ import {
 import { toast } from 'react-toastify';
 import debounce from 'lodash/debounce';
 // Content filters object
-const contentFilters = {
-  Xingamentos: [
-    "palavrão", "xingamento", "idiota", "burro", "feio", "Desgraçado"
-  ],
-  Spam: [
-    "grátis", "promoção", "desconto", "imperdível", "oportunidade única",
-    "dinheiro rápido", "lucro fácil", "clique aqui", "ganhe já",
-    "trabalhe em casa", "renda extra", "marketing multinível"
-  ],
-  Golpes: [
-    "fraude", "golpe", "phishing", "clonado", "hackear", "esquema",
-    "pirâmide financeira", "investimento falso", "conta bloqueada",
-    "transferência suspeita", "pix urgente", "whatsapp clonado"
-  ],
-  ilegal: [
-    "drogas", "armas", "contrabando", "tráfico", "ilegal", "criminoso",
-    "dark web", "deep web", "lavagem de dinheiro"
-  ],
-  Ameaça: [
-    "assédio", "bullying", "ameaça", "perseguição", "difamação",
-    "calúnia", "cyberbullying", "discriminação", "preconceito"
-  ],
-  NSFW: [
-    "pornografia", "nudez", "conteúdo adulto", "sexual"
-  ]
-};
+
+
+const Map = dynamic(() => import('mapbox-gl'), {
+  ssr: false,
+  loading: () => <p>Loading...</p>
+});
 
 const AdminDashboard = () => {
   const [stories, setStories] = useState([]);
@@ -109,9 +92,37 @@ const AdminDashboard = () => {
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
   const router = useRouter();
-  const mapContainer = React.useRef(null);
   const audioRef = React.useRef(null);
-
+  const [isClient, setIsClient] = useState(false);
+  const [activeView, setActiveView] = useState('list');
+  const mapContainer = React.useRef(null);
+  const mapRef = React.useRef(null); 
+  const contentFilters = {
+    Xingamentos: [
+      "palavrão", "xingamento", "idiota", "burro", "feio", "Desgraçado, cú, cu, buceta, pinto, pênis, merda, bosta, macaco, preto"
+    ],
+    Spam: [
+      "grátis", "promoção", "desconto", "imperdível", "oportunidade única",
+      "dinheiro rápido", "lucro fácil", "clique aqui", "ganhe já",
+      "trabalhe em casa", "renda extra", "marketing multinível"
+    ],
+    Golpes: [
+      "fraude", "golpe", "phishing", "clonado", "hackear", "esquema",
+      "pirâmide financeira", "investimento falso", "conta bloqueada",
+      "transferência suspeita", "pix urgente", "whatsapp clonado"
+    ],
+    ilegal: [
+      "drogas", "armas", "contrabando", "tráfico", "ilegal", "criminoso",
+      "dark web", "deep web", "lavagem de dinheiro"
+    ],
+    Ameaça: [
+      "assédio", "bullying", "ameaça", "perseguição", "difamação",
+      "calúnia", "cyberbullying", "discriminação", "preconceito"
+    ],
+    NSFW: [
+      "pornografia", "nudez", "conteúdo adulto", "sexual"
+    ]
+  };
   // Initialize audio element
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -119,11 +130,17 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map) return;
+    if (!mapContainer.current || mapRef.current || activeView !== 'map') return;
+
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
     const newMap = new mapboxgl.Map({
       container: mapContainer.current,
@@ -132,22 +149,41 @@ const AdminDashboard = () => {
       zoom: 10
     });
 
-    setMap(newMap);
+    // Store map instance in ref
+    mapRef.current = newMap;
 
+    // Clean up on unmount
     return () => {
-      newMap?.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
-  }, []);
+  }, [activeView]);
 
-  // Update markers when stories change
+  const checkContent = useMemo(() => (content) => {
+    const results = {};
+    Object.entries(contentFilters).forEach(([category, words]) => {
+      results[category] = words.some(word => 
+        content.toLowerCase().includes(word.toLowerCase())
+      );
+    });
+    return results;
+  }, [contentFilters]);
+
+  // Update markers when filtered stories change or map is initialized
   useEffect(() => {
-    if (!map || !filteredStories.length) return;
+    if (!mapRef.current || !filteredStories.length) return;
 
     // Remove existing markers
-    markers.forEach(marker => marker.remove());
-    const newMarkers = [];
+    if (markers.length) {
+      markers.forEach(marker => marker.remove());
+      setMarkers([]);
+    }
 
-    filteredStories.forEach(story => {
+    const newMarkers = filteredStories.map(story => {
+      if (!story.latitude || !story.longitude) return null;
+
       const el = document.createElement('div');
       el.className = 'story-marker';
       el.style.cssText = `
@@ -168,19 +204,18 @@ const AdminDashboard = () => {
               <div class="p-2">
                 <div class="font-bold">${story.user.username}</div>
                 <p class="text-sm">${story.content.substring(0, 100)}...</p>
-                <button class="mt-2 text-blue-600 text-sm">Ver detalhes</button>
               </div>
             `)
         )
-        .addTo(map);
+        .addTo(mapRef.current);
 
       el.addEventListener('click', () => {
         setSelectedStory(story);
         setIsStoryDialogOpen(true);
       });
 
-      newMarkers.push(marker);
-    });
+      return marker;
+    }).filter(Boolean);
 
     setMarkers(newMarkers);
 
@@ -188,26 +223,43 @@ const AdminDashboard = () => {
     if (newMarkers.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
       filteredStories.forEach(story => {
-        bounds.extend([story.longitude, story.latitude]);
+        if (story.latitude && story.longitude) {
+          bounds.extend([story.longitude, story.latitude]);
+        }
       });
-      map.fitBounds(bounds, { padding: 50 });
+      mapRef.current.fitBounds(bounds, { padding: 50 });
     }
+  }, [filteredStories, mapRef.current]);
 
-    return () => {
-      newMarkers.forEach(marker => marker.remove());
-    };
-  }, [map, filteredStories]);
-
-  // Check content for filters
-  const checkContent = useMemo(() => (content) => {
-    const results = {};
-    Object.entries(contentFilters).forEach(([category, words]) => {
-      results[category] = words.some(word => 
-        content.toLowerCase().includes(word.toLowerCase())
-      );
-    });
-    return results;
-  }, []);
+  // Modify the "View on map" button click handler
+  const handleViewOnMap = (story) => {
+    if (!story.latitude || !story.longitude) return;
+    
+    // Switch to map view
+    setActiveView('map');
+    
+    // Wait for map to be initialized
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.flyTo({
+          center: [story.longitude, story.latitude],
+          zoom: 15,
+          essential: true
+        });
+        
+        // Open the popup for this story
+        const popup = new mapboxgl.Popup({ offset: 25 })
+          .setLngLat([story.longitude, story.latitude])
+          .setHTML(`
+            <div class="p-2">
+              <div class="font-bold">${story.user.username}</div>
+              <p class="text-sm">${story.content.substring(0, 100)}...</p>
+            </div>
+          `)
+          .addTo(mapRef.current);
+      }
+    }, 100);
+  };
 
   // Fetch stories
   useEffect(() => {
@@ -475,6 +527,18 @@ const AdminDashboard = () => {
     );
   };
 
+
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-lg">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -592,7 +656,7 @@ const AdminDashboard = () => {
         </div>
   
         {/* Content Tabs */}
-        <Tabs defaultValue="list" className="space-y-4">
+        <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="list" className="flex-1 sm:flex-initial">
               <List className="h-4 w-4 mr-2" />
@@ -603,7 +667,7 @@ const AdminDashboard = () => {
               Mapa
             </TabsTrigger>
           </TabsList>
-  
+
           <TabsContent value="list">
             <div className="rounded-md border">
               <ScrollArea className="h-[calc(100vh-24rem)]">
@@ -639,14 +703,7 @@ const AdminDashboard = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              if (map) {
-                                map.flyTo({
-                                  center: [story.longitude, story.latitude],
-                                  zoom: 15
-                                });
-                              }
-                            }}
+                            onClick={() => handleViewOnMap(story)}
                           >
                             <MapPin className="h-4 w-4 mr-2" />
                             Ver no mapa
@@ -656,26 +713,101 @@ const AdminDashboard = () => {
                           {renderMediaPreview(story)}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(story.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedStory(story);
+                                setIsStoryDialogOpen(true);
+                              }}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(story.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
+                    {filteredStories.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          Nenhuma história encontrada
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </ScrollArea>
             </div>
           </TabsContent>
-  
+
           <TabsContent value="map">
-            <div className="h-[60vh] sm:h-[600px] rounded-md border overflow-hidden">
-              <div ref={mapContainer} className="h-full w-full" />
+            <div className="space-y-4">
+              <div className="rounded-md border bg-card">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold">Histórias no Mapa</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Total de {filteredStories.length} histórias visíveis
+                  </p>
+                </div>
+                <div className="h-[60vh] sm:h-[600px] relative">
+                  <div ref={mapContainer} className="h-full w-full" />
+                  {!mapRef.current && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                      <div className="text-center space-y-2">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                        <p className="text-sm text-muted-foreground">Carregando mapa...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedStory && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">História Selecionada</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="font-medium text-sm">Usuário</p>
+                        <p>{selectedStory.user.username}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Conteúdo</p>
+                        <p className="text-sm">{selectedStory.content}</p>
+                      </div>
+                      {getContentFlags(selectedStory.content).length > 0 && (
+                        <div>
+                          <p className="font-medium text-sm mb-1">Alertas</p>
+                          <div className="flex gap-1 flex-wrap">
+                            {getContentFlags(selectedStory.content).map((flag) => (
+                              <Badge key={flag} variant="destructive" className="text-xs">
+                                {flag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {selectedStory.mediaUrls?.length > 0 && (
+                        <div>
+                          <p className="font-medium text-sm mb-1">Mídia</p>
+                          {renderMediaPreview(selectedStory)}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -812,4 +944,6 @@ const AdminDashboard = () => {
     </div>
   );}
 
-export default AdminDashboard;
+export default dynamic(() => Promise.resolve(AdminDashboard), {
+  ssr: false
+});
