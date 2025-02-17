@@ -94,7 +94,7 @@ const PixelTextTransition = ({ onComplete }) => {
 
   return (
     <motion.div 
-      className="fixed inset-0 bg-white flex items-center justify-center"
+      className="flex fixed inset-0 justify-center items-center bg-white"
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
@@ -193,7 +193,7 @@ export default function Home() {
 
           <div className="relative z-10 w-full">
             <header className="p-6">
-              <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="flex justify-between items-center mx-auto max-w-7xl">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -215,13 +215,13 @@ export default function Home() {
               <AnimatePresence>
                 {showModal && (
                   <motion.div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+                    className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/80"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
                     <motion.div
-                      className="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm w-full"
+                      className="p-6 w-full max-w-sm text-center bg-white rounded-lg shadow-xl"
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
                       exit={{ scale: 0.8 }}
@@ -241,7 +241,7 @@ export default function Home() {
                         </a>
                       </p>                            
                       <button
-                        className="mt-6 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+                        className="px-4 py-2 mt-6 text-white bg-orange-500 rounded hover:bg-orange-600"
                         onClick={() => setShowModal(false)}
                       >
                         Fechar
@@ -271,19 +271,19 @@ export default function Home() {
                   Céus
                 </h1>
 
-                <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
+                <p className="mx-auto max-w-2xl text-xl leading-relaxed text-gray-200 md:text-2xl">
                   Explore o mundo, compartilhe momentos e descubra histórias únicas em cada lugar que visita.
                 </p>
 
                 <PixelButton
                   onClick={() => router.push("/auth?mode=register")}
-                  className="text-sm md:text-base px-8 py-4"
+                  className="px-8 py-4 text-sm md:text-base"
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
                   COMEÇAR JORNADA
                   <motion.span
-                    className="ml-2 inline-block"
+                    className="inline-block ml-2"
                     animate={{ x: isHovering ? 5 : 0 }}
                     transition={{ type: "spring", stiffness: 300 }}
                   >
@@ -293,8 +293,18 @@ export default function Home() {
               </motion.div>
             </main>
 
-            <footer className="fixed bottom-0 left-0 w-full text-center py-6 text-white/60">
+            <footer className="fixed bottom-0 left-0 py-6 w-full text-center text-white/60">
+            <div className="text-white/60">
               V QL1.0.0 2025
+            </div>
+            <motion.button
+              onClick={() => router.push("/privacy")}
+              className="text-sm transition-colors text-white/40 hover:text-white/80"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Política de Privacidade
+            </motion.button>
             </footer>
           </div>
         </motion.div>

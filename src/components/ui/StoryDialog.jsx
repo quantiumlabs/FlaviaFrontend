@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Edit2 } from 'lucide-react';
+import { Edit2, AlertTriangle } from 'lucide-react';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
+
+const containsSuspiciousContent = (content) => {
+  const htmlRegex = /<[^>]*>/;
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/;
+  return htmlRegex.test(content) || urlRegex.test(content);
+};
 
 const StoryDialog = ({ story, isOpen, onClose }) => {
   const [showModificationDialog, setShowModificationDialog] = useState(false);
+  const currentUser = JSON.parse(localStorage.getItem('user'));
 
   if (!story) return null;
+
+  const isOwnStory = currentUser?.username === story.user.username;
 
   const getTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
@@ -46,10 +55,6 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
 
   const badge = getStoryTypeBadge(story.type);
 
-  const handleModifyClick = () => {
-    setShowModificationDialog(true);
-  };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -84,11 +89,24 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
             </DialogTitle>
           </DialogHeader>
 
+          {containsSuspiciousContent(story.content) && (
+            <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">
+                    Atenção: Esta história contém links ou códigos HTML suspeitos. Isso pode ser uma tentativa de phishing ou golpe. Tenha cuidado.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-4">
             <p className="text-gray-700 whitespace-pre-wrap">{story.content}</p>
           </div>
 
-          {story.mediaUrls && story.mediaUrls.length > 0 && (
+          {story.mediaUrls?.length > 0 && (
             <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
               {story.mediaUrls.map((url, index) => (
                 <div key={index} className="relative">
@@ -97,9 +115,6 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
                       src={url}
                       alt={`Story media ${index + 1}`}
                       className="w-full h-auto rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => {
-                        // Image expansion handler would go here
-                      }}
                     />
                   ) : url.startsWith('data:audio/') ? (
                     <div className="bg-gray-50 rounded-lg p-3">
@@ -114,9 +129,9 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
             </div>
           )}
 
-          {(!story.type || story.type === 'PERSONAL') && (
+          {(!story.type || story.type === 'PERSONAL') && !isOwnStory && (
             <button
-              onClick={handleModifyClick}
+              onClick={() => setShowModificationDialog(true)}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
             >
               <Edit2 className="h-4 w-4" />

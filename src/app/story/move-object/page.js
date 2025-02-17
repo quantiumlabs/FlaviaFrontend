@@ -32,6 +32,7 @@ const SkiesInHandsPage = () => {
   const [objectContent, setObjectContent] = useState('');
   const [showChallengeDialog, setShowChallengeDialog] = useState(true);
   const [hideChallenge, setHideChallenge] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [cloudLocation, setCloudLocation] = useState(null);
   
   // New audio recording states
@@ -323,6 +324,7 @@ const SkiesInHandsPage = () => {
 
             {/* Upload and Recording Buttons */}
             <div className="space-y-4">
+
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full h-full border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100"
@@ -343,6 +345,24 @@ const SkiesInHandsPage = () => {
             accept="image/*"
             className="hidden"
           />
+            <Button
+                onClick={() => setShowCamera(true)}
+                className="w-full h-full border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Camera className="h-6 w-6 text-purple-500" />
+                  <span className="text-purple-700">Tirar Foto</span>
+                </div>
+              </Button>
+
+              {showCamera && (
+                <CameraCapture
+                  onCapture={(file) => {
+                    setCapturedImage(file);
+                  }}
+                  onClose={() => setShowCamera(false)}
+                />
+              )}
 
           {/* Preview Section */}
           <div className="space-y-4">

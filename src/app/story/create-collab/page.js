@@ -29,6 +29,7 @@ import {
 const CreateCollabStoryPage = () => {
   const [storyContent, setStoryContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
+  const [showCamera, setShowCamera] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -149,37 +150,49 @@ const CreateCollabStoryPage = () => {
 
 
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioFile = new File([audioBlob], 'gravacao.wav', { type: 'audio/wav' });
-        setMediaFiles(prev => [...prev, audioFile]);
-        setShowMediaAlert(true);
-        setTimeout(() => setShowMediaAlert(false), 3000);
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      setIsPaused(false);
-      setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } catch (error) {
-      console.error('Erro ao gravar áudio:', error);
-    }
+	try {
+	  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+	  const options = {
+		mimeType: 'audio/webm;codecs=opus'
+	  };
+	  
+	  // Try to use preferred MIME type, fallback for Safari
+	  let mediaRecorder;
+	  if (MediaRecorder.isTypeSupported(options.mimeType)) {
+		mediaRecorder = new MediaRecorder(stream, options);
+	  } else {
+		mediaRecorder = new MediaRecorder(stream);
+	  }
+	  
+	  audioChunksRef.current = [];
+  
+	  mediaRecorder.ondataavailable = (e) => {
+		if (e.data.size > 0) {
+		  audioChunksRef.current.push(e.data);
+		}
+	  };
+  
+	  mediaRecorder.onstop = async () => {
+		const audioBlob = new Blob(audioChunksRef.current);
+		// Convert to WAV for better compatibility
+		const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+		setAudioFile(audioFile);
+		setShowMediaAlert(true);
+		setTimeout(() => setShowMediaAlert(false), 3000);
+	  };
+  
+	  mediaRecorderRef.current = mediaRecorder;
+	  mediaRecorder.start();
+	  setIsRecording(true);
+	  setIsPaused(false);
+	  setRecordingTime(0);
+  
+	  timerRef.current = setInterval(() => {
+		setRecordingTime((prev) => prev + 1);
+	  }, 1000);
+	} catch (error) {
+	  console.error('Error recording audio:', error);
+	}
   };
 
   const pauseRecording = () => {
@@ -331,6 +344,26 @@ const CreateCollabStoryPage = () => {
 						<ImageIcon className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
 						<span className="text-blue-700 text-sm md:text-base">Adicionar Imagens</span>
 						</Button>
+						<Button
+					type="button"
+					variant="outline"
+					onClick={() => setShowCamera(true)}
+					className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
+					>
+					<Camera className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+					<span className="text-blue-700 text-sm md:text-base">Tirar Foto</span>
+					</Button>
+
+					{showCamera && (
+					<CameraCapture
+						onCapture={(file) => {
+						setMediaFiles(prev => [...prev, file]);
+						setShowMediaAlert(true);
+						setTimeout(() => setShowMediaAlert(false), 3000);
+						}}
+						onClose={() => setShowCamera(false)}
+					/>
+					)}
 
 	                <div className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
 	                  {!isRecording ? (

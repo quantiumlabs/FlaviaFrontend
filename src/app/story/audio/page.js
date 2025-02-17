@@ -263,12 +263,10 @@ const CreateStoryPage = () => {
         <Card className="max-w-2xl mx-auto shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">
-              {isFirstStory ? 'Sua primeira história' : 'Colecionar névoas'}
+              {isFirstStory ? 'Sua primeira história' : 'Gravar uma história'}
             </CardTitle>
             <CardDescription className="text-orange-600">
-              {isFirstStory 
-                ? 'Agora é sua vez de contar uma história. Escolha um local especial e compartilhe sua experiência.'
-                : 'Compartilhe uma história que alguem já lhe contou. Escolha um local na cidade e grave.'}
+                {isFirstStory ? 'Compartilhe sua primeira história com o mundo!' : 'Grave um áudio e compartilhe com a comunidade'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -338,127 +336,16 @@ const CreateStoryPage = () => {
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <Send className="h-5 w-5" />
-                  <span>Compartilhar História</span>
+                  <span>Compartilhar áudio</span>
                 </div>
               )}
             </Button>
           </CardContent>
         </Card>
+
+
   
-        <Dialog 
-          open={showWelcomeDialog} 
-          onOpenChange={(open) => {
-            setShowWelcomeDialog(open);
-          }}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-orange-800">Bem-vindo ao Céus!</DialogTitle>
-              <DialogDescription className="pt-4 text-base text-gray-700">
-                <p className="mb-4">
-                  Você está prestes a começar uma jornada única de compartilhamento de histórias em áudio!
-                </p>
-                <p className="mb-4">
-                  No Céus, cada história sonora que você compartilha fica conectada ao local onde foi criada, como uma névoa de memórias pairando no ar.
-                </p>
-                <p className="mb-4">
-                  Compartilhe suas experiências através da sua voz, criando memórias sonoras únicas que outros jogadores poderão descobrir.
-                </p>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="sm:justify-center">
-              <Button
-                type="button"
-                className="bg-orange-600 hover:bg-orange-500 text-white"
-                onClick={() => {
-                  setShowWelcomeDialog(false);
-                }}
-              >
-                Começar minha história
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-  
-        {!isFirstStory && (
-          <Dialog 
-            open={showChallengeDialog} 
-            onOpenChange={(open) => {
-              setShowChallengeDialog(open);
-            }}
-          >
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-2xl text-orange-800">Desafio Colecionar Névoas</DialogTitle>
-                <DialogDescription className="pt-4 text-base text-gray-700">
-                  <p className="mb-4">
-                    Cada história que você encontra, cada narrativa que você ouve, se torna parte do céu que você desenha. Colecionar é mais que ouvir: é conectar memórias.
-                  </p>
-                  <p className="font-semibold mb-4">
-                    Missão: Compartilhe uma história que alguém já lhe contou, um momento único que ficou gravado na sua memória ou capture a história de um desconhecido na cidade.
-                  </p>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="sm:justify-center">
-                <Button
-                  type="button"
-                  className="bg-orange-600 hover:bg-orange-500 text-white"
-                  onClick={() => setShowChallengeDialog(false)}
-                >
-                  Entendi!
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-  
-        {isFirstStory && (
-          <Dialog 
-            open={showFirstStoryDialog} 
-            onOpenChange={(open) => {
-              setShowFirstStoryDialog(open);
-            }}
-          >
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-2xl text-orange-800">Agora é sua vez!</DialogTitle>
-                <DialogDescription className="pt-4 text-base text-gray-700">
-                  <p className="mb-4">
-                    Você já ouviu histórias incríveis pela cidade. Agora chegou o momento de compartilhar a sua própria história!
-                  </p>
-                  <p className="mb-4">
-                    Encontre um lugar especial, um momento único, uma memória que você queira eternizar neste espaço.
-                  </p>
-                  <p className="font-semibold mb-4">
-                    Sua voz, sua história, sua névoa no céu da cidade.
-                  </p>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="sm:justify-center">
-                <Button
-                  type="button"
-                  className="bg-orange-600 hover:bg-orange-500 text-white"
-                  onClick={() => setShowFirstStoryDialog(false)}
-                >
-                  Vamos começar!
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-  
-        {showLogout && (
-          <Button
-            onClick={() => {
-              localStorage.removeItem('user');
-              localStorage.removeItem('token');
-              router.push('/');
-            }}
-            className="fixed bottom-4 right-4 bg-orange-50/90 hover:bg-orange-100/90 text-orange-800 shadow-md backdrop-blur-sm transition-all"
-          >
-            Logout
-          </Button>
-        )}
+
       </div>
     );
   }
