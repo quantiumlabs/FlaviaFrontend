@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function AuthPage() {
@@ -19,27 +18,62 @@ export default function AuthPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Check for token - keep existing pattern
     const token = localStorage.getItem('token');
-    if (token) {
-      router.push('/map');
-    } else {
-      const searchParams = new URLSearchParams(window.location.search);
-      const mode = searchParams.get('mode');
-      if (mode === 'register') {
-        setIsLogin(false);
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      try {
+        // Verify the stored data has proper format
+        const user = JSON.parse(userData);
+        if (user && user.id && user.username) {
+          router.push('/map');
+          return;
+        }
+      } catch (e) {
+        // Invalid user data, clear it
+        clearInvalidData();
       }
+    }
+    
+    // If we get here, either no token or invalid data
+    const searchParams = new URLSearchParams(window.location.search);
+    const mode = searchParams.get('mode');
+    if (mode === 'register') {
+      setIsLogin(false);
     }
   }, [router]);
 
-  const validateForm = () => formData.username && formData.password;
+  const clearInvalidData = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
+
+  const validateForm = () => {
+    // More robust validation
+    const usernameValid = formData.username.trim().length >= 3;
+    const passwordValid = formData.password.length >= 8;
+    
+    if (!usernameValid) {
+      setError('O nome de usuário deve ter pelo menos 3 caracteres.');
+      return false;
+    }
+    
+    if (!passwordValid) {
+      setError('A senha deve ter pelo menos 8 caracteres.');
+      return false;
+    }
+    
+    return true;
+  };
 
   const getErrorMessage = (message) => {
-    // Map backend error messages to user-friendly Portuguese messages
+    // Generic error messages for security
     const errorMessages = {
-      'Invalid credentials': 'Senha incorreta ou usuário não encontrado',
+      'Invalid credentials': 'Credenciais inválidas. Verifique seu nome de usuário e senha.',
       'Username and password are required': 'Por favor, preencha todos os campos',
-      'Usuário já existe': 'Este nome de usuário já está em uso',
-      'default': 'Houve um erro nos nossos servidores. Por favor, tente novamente mais tarde.'
+      'Usuário já existe': 'Este nome de usuário não está disponível',
+      'default': 'Houve um erro. Por favor, tente novamente mais tarde.'
     };
 
     return errorMessages[message] || errorMessages.default;
@@ -48,8 +82,8 @@ export default function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
     if (!validateForm()) {
-      setError('Por favor, preencha todos os campos.');
       return;
     }
 
@@ -57,26 +91,38 @@ export default function AuthPage() {
 
     try {
       const endpoint = isLogin ? 'login' : 'register';
+      
+      // Add a request ID header for improved security
+      const requestId = Math.random().toString(36).substring(2, 15);
+      
       const response = await fetch(`https://ceusgame.com:5522/auth/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId
+        },
+        body: JSON.stringify({
+          username: formData.username.trim(),
+          password: formData.password
+        }),
       });
+      
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || 'Erro inesperado.');
       }
 
+      // Keep the existing storage pattern as is
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
       if (!isLogin) {
         localStorage.setItem('isFirstLogin', 'true');
-        router.push('/map');
-      } else {
-        router.push('/map');
       }
+      
+      router.push('/map');
+      
     } catch (error) {
       setError(getErrorMessage(error.message));
     } finally {
@@ -113,8 +159,6 @@ export default function AuthPage() {
                 className="pr-10 text-base sm:text-lg"
                 aria-label="Nome de usuário"
               />
-              <label htmlFor="username" className="absolute inset-y-0 right-0 flex items-center px-3">
-              </label>
             </div>
             <div className="relative">
               <Input
@@ -128,7 +172,7 @@ export default function AuthPage() {
                 }
                 disabled={isLoading}
                 required
-                minLength={6}
+                minLength={8}
                 className="pr-10 text-base sm:text-lg"
                 aria-label="Senha"
               />
