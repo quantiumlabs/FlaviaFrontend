@@ -12,6 +12,8 @@ import TutorialDialog from '@/components/ui/TutorialDialog';
 import WeaveCloudDialog from '@/components/ui/WeaveCloudDialog';
 import FirstTimeTutorial from '@/components/ui/FirstTimeTutorial';
 import StoryDialog from '@/components/ui/StoryDialog';
+import PixelArtGameAudioPlayer from '@/components/ui/SafariAudioPlayer';
+
 import {
   Dialog,
   DialogContent,
@@ -810,13 +812,7 @@ const MapPage = () => {
                             />
                           ) : url.startsWith('data:audio/') ? (
                             <div className="p-3 bg-gray-50 rounded-lg">
-                              <audio 
-                                controls 
-                                className="w-full"
-                                src={url}
-                              >
-                                Seu navegador não suporta áudio
-                              </audio>
+                              <PixelArtGameAudioPlayer audioUrl={url} />
                             </div>
                           ) : null}
                         </div>
@@ -825,6 +821,7 @@ const MapPage = () => {
                   )}
                 </div>
               )}
+
 
               {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
                 <div className="sticky bottom-0 pt-2 mt-4 bg-white">

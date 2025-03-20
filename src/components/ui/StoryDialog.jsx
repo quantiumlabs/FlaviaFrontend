@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit2, AlertTriangle } from 'lucide-react';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
+import Cookies from "js-cookie";
 
 const containsSuspiciousContent = (content) => {
   const htmlRegex = /<[^>]*>/;
@@ -60,7 +61,7 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex gap-2 items-center mb-2">
               <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${badge.class}`}>
                 {badge.text}
               </span>
@@ -71,7 +72,7 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
                 {story.type === 'COLLABORATIVE' ? (
                   [...new Set([story.user.username, ...(story.collaborators || [])])].map((username) => (
                     <div key={username} className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
-                      <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                      <div className="flex justify-center items-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full">
                         {username.charAt(0).toUpperCase()}
                       </div>
                       <span className="text-xs font-medium text-gray-700">{username}</span>
@@ -79,7 +80,7 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
                   ))
                 ) : (
                   <div className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                    <div className="flex justify-center items-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full">
                       {story.user.username.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-xs font-medium text-gray-700">{story.user.username}</span>
@@ -90,9 +91,9 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
           </DialogHeader>
 
           {containsSuspiciousContent(story.content) && (
-            <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4">
+            <div className="p-4 mt-4 bg-red-50 border-l-4 border-red-500">
               <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <AlertTriangle className="w-5 h-5 text-red-500" />
                 <div className="ml-3">
                   <p className="text-sm text-red-700">
                     Atenção: Esta história contém links ou códigos HTML suspeitos. Isso pode ser uma tentativa de phishing ou golpe. Tenha cuidado.
@@ -107,17 +108,17 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
           </div>
 
           {story.mediaUrls?.length > 0 && (
-            <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
               {story.mediaUrls.map((url, index) => (
                 <div key={index} className="relative">
                   {url.startsWith('data:image/') ? (
                     <img
                       src={url}
                       alt={`Story media ${index + 1}`}
-                      className="w-full h-auto rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      className="object-cover w-full h-auto rounded-lg transition-opacity cursor-pointer hover:opacity-90"
                     />
                   ) : url.startsWith('data:audio/') ? (
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="p-3 bg-gray-50 rounded-lg">
                       <audio controls className="w-full">
                         <source src={url} type="audio/mpeg" />
                         Your browser does not support the audio element.
@@ -132,9 +133,9 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
           {(!story.type || story.type === 'PERSONAL') && !isOwnStory && (
             <button
               onClick={() => setShowModificationDialog(true)}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+              className="inline-flex gap-2 items-center px-4 py-2 mt-4 text-sm font-medium text-blue-600 rounded-lg transition-colors duration-200 hover:text-blue-700 hover:bg-blue-50"
             >
-              <Edit2 className="h-4 w-4" />
+              <Edit2 className="w-4 h-4" />
               Tecer uma nova versão
             </button>
           )}

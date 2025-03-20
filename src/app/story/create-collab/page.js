@@ -24,6 +24,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import CameraCapture from '@/components/ui/CameraCapture';
 
 
 const CreateCollabStoryPage = () => {
@@ -283,16 +284,16 @@ const CreateCollabStoryPage = () => {
 	  <div className="absolute inset-0 bg-[url('/collab.png')] bg-cover bg-center bg-no-repeat">
 	        {/* Main scrollable container that uses the custom vh variable */}
 	        <div 
-	          className="absolute inset-0 overflow-y-auto"
+	          className="overflow-y-auto absolute inset-0"
 	          style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
 	        >
-	          <div className="container mx-auto px-4 py-8 max-w-4xl">
-	            <Card className="w-full shadow-lg mb-8">
-	            <CardHeader className="text-center space-y-4">
+	          <div className="container px-4 py-8 mx-auto max-w-4xl">
+	            <Card className="mb-8 w-full shadow-lg">
+	            <CardHeader className="space-y-4 text-center">
 	              <CardTitle className="text-xl md:text-2xl font-bold text-blue-800 font-['Press_Start_2P'] leading-loose break-words">
 	                Céus Cruzados
 	              </CardTitle>
-	              <CardDescription className="text-blue-600 text-sm md:text-base">
+	              <CardDescription className="text-sm text-blue-600 md:text-base">
 	                Encontre o jogador mais próximo de você e tirem uma foto juntos.
 	              </CardDescription>
 	            </CardHeader>
@@ -303,7 +304,7 @@ const CreateCollabStoryPage = () => {
 	                  placeholder="Nome do outro jogador"
 	                  value={collaborator}
 	                  onChange={(e) => setCollaborator(e.target.value)}
-	                  className="text-base md:text-lg p-4 md:p-6 border-2 border-blue-100 focus:border-blue-300"
+	                  className="p-4 text-base border-2 border-blue-100 md:text-lg md:p-6 focus:border-blue-300"
 	                />
 	              </div>
 
@@ -324,7 +325,7 @@ const CreateCollabStoryPage = () => {
 	                </Alert>
 	              )}
 
-				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
 						<input
 						type="file"
 						id="file-upload"
@@ -339,19 +340,19 @@ const CreateCollabStoryPage = () => {
 						type="button"
 						variant="outline"
 						onClick={() => fileInputRef.current?.click()}
-						className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
+						className="flex flex-col gap-2 justify-center items-center h-20 bg-blue-50 border-2 border-blue-200 border-dashed transition-colors md:h-24 hover:bg-blue-100"
 						>
-						<ImageIcon className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-						<span className="text-blue-700 text-sm md:text-base">Adicionar Imagens</span>
+						<ImageIcon className="w-5 h-5 text-blue-500 md:h-6 md:w-6" />
+						<span className="text-sm text-blue-700 md:text-base">Adicionar Imagens</span>
 						</Button>
 						<Button
 					type="button"
 					variant="outline"
 					onClick={() => setShowCamera(true)}
-					className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors flex flex-col items-center justify-center gap-2"
+					className="flex flex-col gap-2 justify-center items-center h-20 bg-blue-50 border-2 border-blue-200 border-dashed transition-colors md:h-24 hover:bg-blue-100"
 					>
-					<Camera className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-					<span className="text-blue-700 text-sm md:text-base">Tirar Foto</span>
+					<Camera className="w-5 h-5 text-blue-500 md:h-6 md:w-6" />
+					<span className="text-sm text-blue-700 md:text-base">Tirar Foto</span>
 					</Button>
 
 					{showCamera && (
@@ -365,33 +366,33 @@ const CreateCollabStoryPage = () => {
 					/>
 					)}
 
-	                <div className="h-20 md:h-24 border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
+	                <div className="flex flex-col gap-2 justify-center items-center p-4 h-20 bg-blue-50 rounded-lg border-2 border-blue-200 border-dashed md:h-24">
 	                  {!isRecording ? (
 	                    <Button
 	                      onClick={startRecording}
-	                      className="bg-red-500 hover:bg-red-400 transition-colors"
+	                      className="bg-red-500 transition-colors hover:bg-red-400"
 	                    >
-	                      <Mic className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+	                      <Mic className="mr-2 w-4 h-4 md:h-5 md:w-5" />
 	                      <span className="text-sm md:text-base">Gravar Áudio</span>
 	                    </Button>
 	                  ) : (
 	                    <div className="space-y-2 w-full">
-	                      <div className="flex items-center justify-center gap-2 text-blue-700">
-	                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500 animate-pulse" />
+	                      <div className="flex gap-2 justify-center items-center text-blue-700">
+	                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse md:w-3 md:h-3" />
 	                        <span className="text-sm md:text-base">{formatTime(recordingTime)}</span>
 	                      </div>
-	                      <div className="flex justify-center gap-2">
+	                      <div className="flex gap-2 justify-center">
 	                        <Button
 	                          onClick={pauseRecording}
 	                          className="bg-blue-600 hover:bg-blue-500"
 	                        >
-	                          {isPaused ? <Play className="h-3 w-3 md:h-4 md:w-4" /> : <Pause className="h-3 w-3 md:h-4 md:w-4" />}
+	                          {isPaused ? <Play className="w-3 h-3 md:h-4 md:w-4" /> : <Pause className="w-3 h-3 md:h-4 md:w-4" />}
 	                        </Button>
 	                        <Button
 	                          onClick={stopRecording}
 	                          className="bg-red-500 hover:bg-red-400"
 	                        >
-	                          <Square className="h-3 w-3 md:h-4 md:w-4" />
+	                          <Square className="w-3 h-3 md:h-4 md:w-4" />
 	                        </Button>
 	                      </div>
 	                    </div>
@@ -409,49 +410,49 @@ const CreateCollabStoryPage = () => {
 	              />
 
 	              {mediaFiles.length > 0 && (
-	                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+	                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 	                  {mediaFiles.map((file, index) => (
 	                    <div key={index} className="relative group">
 	                      {file.type.startsWith('image/') ? (
-	                        <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-md group-hover:shadow-lg transition-shadow">
+	                        <div className="overflow-hidden relative bg-gray-100 rounded-lg shadow-md transition-shadow aspect-square group-hover:shadow-lg">
 	                          <Image
 	                            src={URL.createObjectURL(file)}
 	                            alt="Preview"
 	                            fill
 	                            className="object-cover"
 	                          />
-	                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+	                          <div className="flex absolute inset-0 justify-center items-center bg-black bg-opacity-0 transition-all group-hover:bg-opacity-20">
 	                            <Button
 	                              variant="ghost"
 	                              size="icon"
-	                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+	                              className="opacity-0 transition-opacity group-hover:opacity-100"
 	                              onClick={() => setSelectedImage(URL.createObjectURL(file))}
 	                            >
-	                              <Maximize2 className="h-4 w-4 md:h-5 md:w-5 text-white" />
+	                              <Maximize2 className="w-4 h-4 text-white md:h-5 md:w-5" />
 	                            </Button>
 	                          </div>
 	                        </div>
 	                      ) : (
-	                        <div className="relative aspect-square rounded-lg bg-blue-50 flex flex-col items-center justify-center p-2 md:p-4 shadow-md group-hover:shadow-lg transition-shadow">
-	                          <Mic className="h-6 w-6 md:h-8 md:w-8 mb-2 text-blue-500" />
+	                        <div className="flex relative flex-col justify-center items-center p-2 bg-blue-50 rounded-lg shadow-md transition-shadow aspect-square md:p-4 group-hover:shadow-lg">
+	                          <Mic className="mb-2 w-6 h-6 text-blue-500 md:h-8 md:w-8" />
 	                          <audio
 	                            src={URL.createObjectURL(file)}
 	                            controls
-	                            className="w-full mt-2"
+	                            className="mt-2 w-full"
 	                          />
 	                        </div>
 	                      )}
 	                      <Button
 	                        variant="destructive"
 	                        size="icon"
-	                        className="absolute -top-2 -right-2 h-6 w-6 md:h-8 md:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+	                        className="absolute -top-2 -right-2 w-6 h-6 opacity-0 transition-opacity md:h-8 md:w-8 group-hover:opacity-100"
 	                        onClick={() => {
 	                          const newFiles = [...mediaFiles];
 	                          newFiles.splice(index, 1);
 	                          setMediaFiles(newFiles);
 	                        }}
 	                      >
-	                        <X className="h-3 w-3 md:h-4 md:w-4" />
+	                        <X className="w-3 h-3 md:h-4 md:w-4" />
 	                      </Button>
 	                    </div>
 	                  ))}
@@ -460,17 +461,17 @@ const CreateCollabStoryPage = () => {
 
 	              <Button
 	                onClick={handleSubmit}
-	                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-6 text-base md:text-lg font-medium transition-colors"
+	                className="py-4 w-full text-base font-medium text-white bg-blue-600 transition-colors hover:bg-blue-500 md:py-6 md:text-lg"
 	                disabled={isSubmitting}
 	              >
 	                {isSubmitting ? (
-	                  <div className="flex items-center justify-center gap-2">
-	                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+	                  <div className="flex gap-2 justify-center items-center">
+	                    <Loader2 className="w-4 h-4 animate-spin md:h-5 md:w-5" />
 	                    <span>Enviando História...</span>
 	                  </div>
 	                ) : (
-	                  <div className="flex items-center justify-center gap-2">
-	                    <Users className="h-4 w-4 md:h-5 md:w-5" />
+	                  <div className="flex gap-2 justify-center items-center">
+	                    <Users className="w-4 h-4 md:h-5 md:w-5" />
 	                    <span>Criar História Colaborativa</span>
 	                  </div>
 	                )}
@@ -512,12 +513,12 @@ const CreateCollabStoryPage = () => {
 	      >
 	        <DialogContent className="sm:max-w-md">
 	          <DialogHeader>
-	            <DialogTitle className="text-xl md:text-2xl text-blue-800">Desafio Céus Cruzados</DialogTitle>
-	            <DialogDescription className="pt-4 text-sm md:text-base text-gray-700">
+	            <DialogTitle className="text-xl text-blue-800 md:text-2xl">Desafio Céus Cruzados</DialogTitle>
+	            <DialogDescription className="pt-4 text-sm text-gray-700 md:text-base">
 	              <p className="mb-4">
 	                Quando vocês se encontram, as histórias se cruzam. Juntos, vocês podem criar uma história que só existe porque vocês se encontraram.
 	              </p>
-	              <h1 className="font-semibold mb-4">
+	              <h1 className="mb-4 font-semibold">
 	                Missão: encontre o jogador mais próximo de você e tire uma foto.
 	              </h1>
 	            </DialogDescription>
@@ -525,7 +526,7 @@ const CreateCollabStoryPage = () => {
 	          <DialogFooter className="sm:justify-center">
 	            <Button
 	              type="button"
-	              className="bg-blue-600 hover:bg-blue-500 text-white"
+	              className="text-white bg-blue-600 hover:bg-blue-500"
 	              onClick={() => setShowChallengeDialog(false)}
 	            >
 	              Entendi!

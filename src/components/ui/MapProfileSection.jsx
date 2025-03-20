@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Image from 'next/image';
-import { Separator } from 'radix-ui';
-
+import { Separator } from '@/components/ui/separator';
 const MapProfileSection = ({ user, onLogout, isOpen }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -213,7 +212,7 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
           <Button
               variant="ghost"
               className="justify-start w-full text-gray-600 hover:text-gray-900"
-              onClick={() => window.location.href = '/audio'}
+              onClick={() => window.location.href = 'story/audio'}
             >
               <AudioWaveform className="mr-2 w-4 h-4" />
               Gravar mais um áudio
