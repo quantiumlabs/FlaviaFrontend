@@ -380,7 +380,7 @@ export default function Home() {
 
               <footer className="fixed bottom-0 left-0 py-6 w-full text-center text-white/60">
               <div className="text-white/60">
-              QL1.5.2 2025
+              QL2.0 BETA 2025
               </div>
               <motion.button
                 onClick={() => router.push("/privacy")}
