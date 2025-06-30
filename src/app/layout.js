@@ -34,8 +34,8 @@ export default function RootLayout({ children }) {
       <head>
         {/* Single Apple Touch Icon */}
         <link rel="apple-touch-icon" href="/app-icon.png" />
-        <body className={inter.className}>{children}</body>
       </head>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
