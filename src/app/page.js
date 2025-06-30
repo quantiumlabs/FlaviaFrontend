@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Cloud } from "lucide-react";
 import { VideoIntro } from "@/components/VideoIntro";
 import confetti from "canvas-confetti";
+import Cookies from "js-cookie";
 
 // PixelButton Component
 const PixelButton = ({ children, onClick, className = "", variant = "primary" }) => {
@@ -132,7 +133,7 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (token) {
       router.push("/map");
     } else {
@@ -295,7 +296,7 @@ export default function Home() {
 
             <footer className="fixed bottom-0 left-0 py-6 w-full text-center text-white/60">
             <div className="text-white/60">
-              V QL1.0.0 2025
+              V QL1.5.2 2025
             </div>
             <motion.button
               onClick={() => router.push("/privacy")}

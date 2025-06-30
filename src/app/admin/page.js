@@ -375,9 +375,9 @@ const AdminDashboard = () => {
   // Stats card component
   const StatsCard = ({ title, value, subtitle, icon: Icon }) => (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row justify-between items-center pb-2 space-y-0">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className="w-4 h-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -416,7 +416,7 @@ const AdminDashboard = () => {
           </DialogHeader>
           <div className="relative">
             {type === 'image' ? (
-              <div className="relative aspect-video flex items-center justify-center bg-black/5 rounded-md">
+              <div className="flex relative justify-center items-center rounded-md aspect-video bg-black/5">
                 <img
                   src={urls[currentIndex]}
                   alt={`Imagem ${currentIndex + 1}`}
@@ -430,7 +430,7 @@ const AdminDashboard = () => {
                       className="absolute left-2 top-1/2 -translate-y-1/2"
                       onClick={handlePrevious}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -438,20 +438,20 @@ const AdminDashboard = () => {
                       className="absolute right-2 top-1/2 -translate-y-1/2"
                       onClick={handleNext}
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="w-4 h-4" />
                     </Button>
                   </>
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-black/5 rounded-md">
+              <div className="p-4 rounded-md bg-black/5">
                 <audio
                   src={urls[currentIndex]}
                   controls
                   className="w-full"
                 />
                 {urls.length > 1 && (
-                  <div className="flex justify-center gap-2 mt-4">
+                  <div className="flex gap-2 justify-center mt-4">
                     <Button onClick={handlePrevious}>Anterior</Button>
                     <Button onClick={handleNext}>Próximo</Button>
                   </div>
@@ -464,7 +464,7 @@ const AdminDashboard = () => {
                 size="icon"
                 onClick={() => setMediaDialog(prev => ({ ...prev, isOpen: false }))}
               >
-                <XCircle className="h-4 w-4" />
+                <XCircle className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -481,7 +481,7 @@ const AdminDashboard = () => {
     return (
       <div className="flex flex-wrap gap-2">
         {images.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex flex-wrap gap-1">
             {images.map((url, index) => (
               <button
                 key={`image-${index}`}
@@ -491,19 +491,19 @@ const AdminDashboard = () => {
                   urls: images,
                   currentIndex: index
                 })}
-                className="relative w-12 h-12 rounded overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+                className="overflow-hidden relative w-12 h-12 rounded transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <img
                   src={url}
                   alt={`media-${index}`}
-                  className="w-full h-full object-cover"
+                  className="object-cover w-full h-full"
                 />
               </button>
             ))}
           </div>
         )}
         {audioFiles.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex flex-wrap gap-1">
             {audioFiles.map((url, index) => (
               <Button
                 key={`audio-${index}`}
@@ -515,9 +515,9 @@ const AdminDashboard = () => {
                   urls: audioFiles,
                   currentIndex: index
                 })}
-                className="flex items-center gap-1"
+                className="flex gap-1 items-center"
               >
-                <Music className="h-4 w-4" />
+                <Music className="w-4 h-4" />
                 <span className="sr-only">Reproduzir áudio {index + 1}</span>
               </Button>
             ))}
@@ -530,9 +530,9 @@ const AdminDashboard = () => {
 
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="space-y-4 text-center">
+          <div className="mx-auto w-12 h-12 rounded-full border-b-2 border-gray-900 animate-spin"></div>
           <p className="text-lg">Carregando...</p>
         </div>
       </div>
@@ -542,18 +542,18 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b sticky top-0 bg-background z-10">
-        <div className="container flex h-16 items-center px-4">
+      <div className="sticky top-0 z-10 border-b bg-background">
+        <div className="container flex items-center px-4 h-16">
           <Button variant="ghost" size="icon" onClick={() => router.push('/map')}>
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="w-4 h-4" />
           </Button>
           <h2 className="ml-4 text-lg font-semibold">Painel de Administração</h2>
           
-          <div className="ml-auto flex items-center space-x-2">
+          <div className="flex items-center ml-auto space-x-2">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-4 w-4" />
+                  <Menu className="w-4 h-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -562,11 +562,11 @@ const AdminDashboard = () => {
                 </SheetHeader>
                 <nav className="flex flex-col gap-4 mt-4">
                   <Button variant="ghost" className="justify-start" onClick={() => setActiveView('list')}>
-                    <List className="h-4 w-4 mr-2" />
+                    <List className="mr-2 w-4 h-4" />
                     Lista de Histórias
                   </Button>
                   <Button variant="ghost" className="justify-start" onClick={() => setActiveView('map')}>
-                    <MapPin className="h-4 w-4 mr-2" />
+                    <MapPin className="mr-2 w-4 h-4" />
                     Mapa de Histórias
                   </Button>
                 </nav>
@@ -579,7 +579,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="container px-4 py-6 space-y-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total de Histórias"
             value={stories.length}
@@ -607,10 +607,10 @@ const AdminDashboard = () => {
         </div>
   
         {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 w-4 h-4 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar histórias..."
                 className="pl-10"
@@ -621,7 +621,7 @@ const AdminDashboard = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full sm:w-auto">
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="mr-2 w-4 h-4" />
                 Filtros
                 {activeFilters.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
@@ -643,11 +643,11 @@ const AdminDashboard = () => {
                         : [...prev, filter]
                     )
                   }}
-                  className="flex items-center justify-between"
+                  className="flex justify-between items-center"
                 >
                   {filter}
                   {activeFilters.includes(filter) && (
-                    <X className="h-4 w-4" />
+                    <X className="w-4 h-4" />
                   )}
                 </DropdownMenuItem>
               ))}
@@ -659,11 +659,11 @@ const AdminDashboard = () => {
         <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="list" className="flex-1 sm:flex-initial">
-              <List className="h-4 w-4 mr-2" />
+              <List className="mr-2 w-4 h-4" />
               Lista
             </TabsTrigger>
             <TabsTrigger value="map" className="flex-1 sm:flex-initial">
-              <MapPin className="h-4 w-4 mr-2" />
+              <MapPin className="mr-2 w-4 h-4" />
               Mapa
             </TabsTrigger>
           </TabsList>
@@ -689,7 +689,7 @@ const AdminDashboard = () => {
                           <div className="max-w-[300px]">
                             <p className="truncate">{story.content}</p>
                             {getContentFlags(story.content).length > 0 && (
-                              <div className="flex gap-1 mt-1 flex-wrap">
+                              <div className="flex flex-wrap gap-1 mt-1">
                                 {getContentFlags(story.content).map((flag) => (
                                   <Badge key={flag} variant="destructive" className="text-xs">
                                     {flag}
@@ -705,7 +705,7 @@ const AdminDashboard = () => {
                             size="sm"
                             onClick={() => handleViewOnMap(story)}
                           >
-                            <MapPin className="h-4 w-4 mr-2" />
+                            <MapPin className="mr-2 w-4 h-4" />
                             Ver no mapa
                           </Button>
                         </TableCell>
@@ -713,7 +713,7 @@ const AdminDashboard = () => {
                           {renderMediaPreview(story)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex gap-2 items-center">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -722,7 +722,7 @@ const AdminDashboard = () => {
                                 setIsStoryDialogOpen(true);
                               }}
                             >
-                              <MessageSquare className="h-4 w-4" />
+                              <MessageSquare className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -730,7 +730,7 @@ const AdminDashboard = () => {
                               onClick={() => handleDelete(story.id)}
                               className="text-destructive"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -738,7 +738,7 @@ const AdminDashboard = () => {
                     ))}
                     {filteredStories.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                           Nenhuma história encontrada
                         </TableCell>
                       </TableRow>
@@ -759,11 +759,11 @@ const AdminDashboard = () => {
                   </p>
                 </div>
                 <div className="h-[60vh] sm:h-[600px] relative">
-                  <div ref={mapContainer} className="h-full w-full" />
+                  <div ref={mapContainer} className="w-full h-full" />
                   {!mapRef.current && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                      <div className="text-center space-y-2">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                    <div className="flex absolute inset-0 justify-center items-center bg-background/50">
+                      <div className="space-y-2 text-center">
+                        <Loader2 className="mx-auto w-8 h-8 animate-spin" />
                         <p className="text-sm text-muted-foreground">Carregando mapa...</p>
                       </div>
                     </div>
@@ -779,17 +779,17 @@ const AdminDashboard = () => {
                   <CardContent>
                     <div className="space-y-2">
                       <div>
-                        <p className="font-medium text-sm">Usuário</p>
+                        <p className="text-sm font-medium">Usuário</p>
                         <p>{selectedStory.user.username}</p>
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Conteúdo</p>
+                        <p className="text-sm font-medium">Conteúdo</p>
                         <p className="text-sm">{selectedStory.content}</p>
                       </div>
                       {getContentFlags(selectedStory.content).length > 0 && (
                         <div>
-                          <p className="font-medium text-sm mb-1">Alertas</p>
-                          <div className="flex gap-1 flex-wrap">
+                          <p className="mb-1 text-sm font-medium">Alertas</p>
+                          <div className="flex flex-wrap gap-1">
                             {getContentFlags(selectedStory.content).map((flag) => (
                               <Badge key={flag} variant="destructive" className="text-xs">
                                 {flag}
@@ -800,7 +800,7 @@ const AdminDashboard = () => {
                       )}
                       {selectedStory.mediaUrls?.length > 0 && (
                         <div>
-                          <p className="font-medium text-sm mb-1">Mídia</p>
+                          <p className="mb-1 text-sm font-medium">Mídia</p>
                           {renderMediaPreview(selectedStory)}
                         </div>
                       )}
@@ -822,14 +822,14 @@ const AdminDashboard = () => {
           {selectedStory && (
             <div className="space-y-4">
               <div>
-                <h4 className="font-medium mb-1">Usuário</h4>
+                <h4 className="mb-1 font-medium">Usuário</h4>
                 <p>{selectedStory.user.username}</p>
               </div>
               <div>
-                <h4 className="font-medium mb-1">Conteúdo</h4>
+                <h4 className="mb-1 font-medium">Conteúdo</h4>
                 <p>{selectedStory.content}</p>
                 {getContentFlags(selectedStory.content).length > 0 && (
-                  <div className="flex gap-1 mt-2 flex-wrap">
+                  <div className="flex flex-wrap gap-1 mt-2">
                     {getContentFlags(selectedStory.content).map((flag) => (
                       <Badge key={flag} variant="destructive" className="text-xs">
                         {flag}
@@ -839,7 +839,7 @@ const AdminDashboard = () => {
                 )}
               </div>
               <div>
-                <h4 className="font-medium mb-1">Mídia</h4>
+                <h4 className="mb-1 font-medium">Mídia</h4>
                 {renderMediaPreview(selectedStory)}
               </div>
             </div>
@@ -860,7 +860,7 @@ const AdminDashboard = () => {
           </DialogHeader>
           <div className="relative">
             {mediaDialog.type === 'image' ? (
-              <div className="relative aspect-video flex items-center justify-center bg-black/5 rounded-md">
+              <div className="flex relative justify-center items-center rounded-md aspect-video bg-black/5">
                 <img
                   src={mediaDialog.urls[mediaDialog.currentIndex]}
                   alt={`Imagem ${mediaDialog.currentIndex + 1}`}
@@ -879,7 +879,7 @@ const AdminDashboard = () => {
                         }));
                       }}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -892,20 +892,20 @@ const AdminDashboard = () => {
                         }));
                       }}
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="w-4 h-4" />
                     </Button>
                   </>
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-black/5 rounded-md">
+              <div className="p-4 rounded-md bg-black/5">
                 <audio
                   src={mediaDialog.urls[mediaDialog.currentIndex]}
                   controls
                   className="w-full"
                 />
                 {mediaDialog.urls.length > 1 && (
-                  <div className="flex justify-center gap-2 mt-4">
+                  <div className="flex gap-2 justify-center mt-4">
                     <Button
                       onClick={() => {
                         setMediaDialog(prev => ({
@@ -936,7 +936,7 @@ const AdminDashboard = () => {
               className="absolute top-2 right-2"
               onClick={() => setMediaDialog(prev => ({ ...prev, isOpen: false }))}
             >
-              <XCircle className="h-4 w-4" />
+              <XCircle className="w-4 h-4" />
             </Button>
           </div>
         </DialogContent>

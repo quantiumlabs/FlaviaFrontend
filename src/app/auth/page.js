@@ -34,13 +34,11 @@ export default function AuthPage() {
   const validateForm = () => formData.username && formData.password;
 
   const getErrorMessage = (message) => {
-    // Map backend error messages to user-friendly Portuguese messages
     const errorMessages = {
-      'Invalid credentials': 'Senha incorreta ou usuário não encontrado',
-      'Username and password are required': 'Por favor, preencha todos os campos',
-      'Usuário já existe': 'Este nome de usuário já está em uso',
-      'default': 'Houve um erro nos nossos servidores. Por favor, tente novamente mais tarde.'
-    };
+      'Invalid credentials': 'Usuário ou senha incorretos. Por favor, verifique suas informações.',
+      'Username and password are required': 'Preencha todos os campos para continuar.',
+      'Usuário já existe': 'Este nome de usuário já está em uso.',
+      'default': 'Ops, algo deu errado por aqui. Nossa equipe já está verificando. Tente novamente mais tarde.'    };
 
     return errorMessages[message] || errorMessages.default;
   };
@@ -85,13 +83,13 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">
-      <Card className="max-w-md w-full mx-4 shadow-lg rounded-xl bg-white p-6 space-y-6">
-        <CardHeader className="text-center py-2">
+    <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <Card className="p-6 mx-4 space-y-6 w-full max-w-md bg-white rounded-xl shadow-lg">
+        <CardHeader className="py-2 text-center">
           <CardTitle className="text-2xl font-semibold text-blue-600">
             {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}
           </CardTitle>
-          <p className="text-blue-400 text-sm">
+          <p className="text-sm text-blue-400">
             {isLogin
               ? 'Faça login para acessar sua conta.'
               : 'Cadastre-se para começar sua jornada.'}
@@ -113,7 +111,7 @@ export default function AuthPage() {
                 className="pr-10 text-base sm:text-lg"
                 aria-label="Nome de usuário"
               />
-              <label htmlFor="username" className="absolute inset-y-0 right-0 flex items-center px-3">
+              <label htmlFor="username" className="flex absolute inset-y-0 right-0 items-center px-3">
               </label>
             </div>
             <div className="relative">
@@ -134,11 +132,11 @@ export default function AuthPage() {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center px-3"
+                className="flex absolute inset-y-0 right-0 items-center px-3"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {error && (
@@ -155,8 +153,8 @@ export default function AuthPage() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="animate-spin h-5 w-5" />
+                <div className="flex gap-2 justify-center items-center">
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Carregando...</span>
                 </div>
               ) : isLogin ? (

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -7,10 +7,21 @@ const CameraCapture = ({ onCapture, onClose }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' is back camera, 'user' is front camera
   
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Stop any existing stream
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: facingMode
+        } 
+      });
+      
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
@@ -22,6 +33,10 @@ const CameraCapture = ({ onCapture, onClose }) => {
     }
   };
 
+  const switchCamera = async () => {
+    setFacingMode(current => current === 'environment' ? 'user' : 'environment');
+  };
+
   const handleCapture = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -30,7 +45,14 @@ const CameraCapture = ({ onCapture, onClose }) => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
-      context.drawImage(video, 0, 0);
+      
+      // Flip the image horizontally if using front camera
+      if (facingMode === 'user') {
+        context.scale(-1, 1);
+        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      } else {
+        context.drawImage(video, 0, 0);
+      }
       
       canvas.toBlob((blob) => {
         const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
@@ -52,25 +74,16 @@ const CameraCapture = ({ onCapture, onClose }) => {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [facingMode]); // Restart camera when facingMode changes
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md p-0">
         <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 z-10"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
             <video
               ref={videoRef}
-              className="h-full w-full object-cover"
+              className={`h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
               playsInline
               autoPlay
             />
@@ -78,13 +91,23 @@ const CameraCapture = ({ onCapture, onClose }) => {
           
           <canvas ref={canvasRef} className="hidden" />
           
-          <Button
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white text-black hover:bg-gray-100"
-            onClick={handleCapture}
-          >
-            <Camera className="mr-2 h-4 w-4" />
-            Capturar
-          </Button>
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-4">
+            <Button
+              className="bg-white text-black hover:bg-gray-100"
+              onClick={switchCamera}
+              size="icon"
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              className="bg-white text-black hover:bg-gray-100"
+              onClick={handleCapture}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Capturar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

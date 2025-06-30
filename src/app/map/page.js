@@ -12,6 +12,8 @@ import TutorialDialog from '@/components/ui/TutorialDialog';
 import WeaveCloudDialog from '@/components/ui/WeaveCloudDialog';
 import FirstTimeTutorial from '@/components/ui/FirstTimeTutorial';
 import StoryDialog from '@/components/ui/StoryDialog';
+import PixelArtGameAudioPlayer from '@/components/ui/SafariAudioPlayer';
+
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,13 @@ import {
   Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2, Leaf, Swords
 } from 'lucide-react';
 
+// Add this helper function at the top of the file with other constants
+const urlRegex = /(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+(?:\/[^\s]*)?/g;
+
+const hasLinks = (text) => {
+  urlRegex.lastIndex = 0;
+  return urlRegex.test(text);
+};
 
 const MapPage = () => {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -772,7 +781,22 @@ const MapPage = () => {
               </DialogHeader>
 
               <div className="mt-4">
-                <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+                {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
+                  // For collaborative stories, check both content and usernames
+                  hasLinks(selectedStoryForDialog.content) || 
+                  selectedStoryForDialog.collaborators?.some(username => hasLinks(username)) ? (
+                    <p className="text-red-500 font-medium">Esta história continha um link e foi removida</p>
+                  ) : (
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+                  )
+                ) : (
+                  // For regular stories, just check content
+                  hasLinks(selectedStoryForDialog.content) ? (
+                    <p className="text-red-500 font-medium">Esta história continha um link e foi removida</p>
+                  ) : (
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
+                  )
+                )}
               </div>
 
               {selectedStoryForDialog.hasMedia && (
@@ -810,13 +834,7 @@ const MapPage = () => {
                             />
                           ) : url.startsWith('data:audio/') ? (
                             <div className="p-3 bg-gray-50 rounded-lg">
-                              <audio 
-                                controls 
-                                className="w-full"
-                                src={url}
-                              >
-                                Seu navegador não suporta áudio
-                              </audio>
+                              <PixelArtGameAudioPlayer audioUrl={url} />
                             </div>
                           ) : null}
                         </div>
@@ -825,6 +843,7 @@ const MapPage = () => {
                   )}
                 </div>
               )}
+
 
               {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
                 <div className="sticky bottom-0 pt-2 mt-4 bg-white">

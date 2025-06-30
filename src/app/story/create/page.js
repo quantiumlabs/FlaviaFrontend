@@ -260,7 +260,7 @@ const CreateStoryPage = () => {
 
   return (
       <div className="min-h-screen p-4 md:p-8 bg-[url('/story.png')] bg-cover bg-center bg-no-repeat">
-        <Card className="max-w-2xl mx-auto shadow-lg">
+        <Card className="mx-auto max-w-2xl shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-orange-800 font-['Press_Start_2P'] leading-loose">
               {isFirstStory ? 'Sua primeira história' : 'Colecionar névoas'}
@@ -281,33 +281,33 @@ const CreateStoryPage = () => {
             )}
   
             <div>
-              <div className="h-24 border-2 border-dashed border-orange-200 bg-orange-50 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
+              <div className="flex flex-col gap-2 justify-center items-center p-4 h-24 bg-orange-50 rounded-lg border-2 border-orange-200 border-dashed">
                 {!isRecording ? (
                   <Button
                     onClick={startRecording}
-                    className="bg-red-500 hover:bg-red-400 transition-colors"
+                    className="bg-red-500 transition-colors hover:bg-red-400"
                   >
-                    <Mic className="h-5 w-5 mr-2" />
+                    <Mic className="mr-2 w-5 h-5" />
                     Gravar Áudio
                   </Button>
                 ) : (
                   <div className="space-y-2 w-full">
-                    <div className="flex items-center justify-center gap-2 text-orange-700">
-                      <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    <div className="flex gap-2 justify-center items-center text-orange-700">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                       <span>{formatTime(recordingTime)}</span>
                     </div>
-                    <div className="flex justify-center gap-2">
+                    <div className="flex gap-2 justify-center">
                       <Button
                         onClick={pauseRecording}
                         className="bg-orange-600 hover:bg-orange-500"
                       >
-                        {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                        {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                       </Button>
                       <Button
                         onClick={stopRecording}
                         className="bg-red-500 hover:bg-red-400"
                       >
-                        <Square className="h-4 w-4" />
+                        <Square className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -316,7 +316,7 @@ const CreateStoryPage = () => {
             </div>
   
             {audioFile && (
-              <div className="rounded-lg bg-orange-50 p-4 shadow-md">
+              <div className="p-4 bg-orange-50 rounded-lg shadow-md">
                 <audio
                   src={URL.createObjectURL(audioFile)}
                   controls
@@ -327,17 +327,17 @@ const CreateStoryPage = () => {
   
             <Button
               onClick={handleSubmit}
-              className="w-full bg-orange-600 hover:bg-orange-500 text-white py-6 text-lg font-medium transition-colors"
+              className="py-6 w-full text-lg font-medium text-white bg-orange-600 transition-colors hover:bg-orange-500"
               disabled={isSubmitting || !audioFile}
             >
               {isSubmitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                <div className="flex gap-2 justify-center items-center">
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Enviando História...</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <Send className="h-5 w-5" />
+                <div className="flex gap-2 justify-center items-center">
+                  <Send className="w-5 h-5" />
                   <span>Compartilhar História</span>
                 </div>
               )}
@@ -369,7 +369,7 @@ const CreateStoryPage = () => {
             <DialogFooter className="sm:justify-center">
               <Button
                 type="button"
-                className="bg-orange-600 hover:bg-orange-500 text-white"
+                className="text-white bg-orange-600 hover:bg-orange-500"
                 onClick={() => {
                   setShowWelcomeDialog(false);
                 }}
@@ -394,7 +394,7 @@ const CreateStoryPage = () => {
                   <p className="mb-4">
                     Cada história que você encontra, cada narrativa que você ouve, se torna parte do céu que você desenha. Colecionar é mais que ouvir: é conectar memórias.
                   </p>
-                  <p className="font-semibold mb-4">
+                  <p className="mb-4 font-semibold">
                     Missão: Compartilhe uma história que alguém já lhe contou, um momento único que ficou gravado na sua memória ou capture a história de um desconhecido na cidade.
                   </p>
                 </DialogDescription>
@@ -402,7 +402,7 @@ const CreateStoryPage = () => {
               <DialogFooter className="sm:justify-center">
                 <Button
                   type="button"
-                  className="bg-orange-600 hover:bg-orange-500 text-white"
+                  className="text-white bg-orange-600 hover:bg-orange-500"
                   onClick={() => setShowChallengeDialog(false)}
                 >
                   Entendi!
@@ -429,7 +429,7 @@ const CreateStoryPage = () => {
                   <p className="mb-4">
                     Encontre um lugar especial, um momento único, uma memória que você queira eternizar neste espaço.
                   </p>
-                  <p className="font-semibold mb-4">
+                  <p className="mb-4 font-semibold">
                     Sua voz, sua história, sua névoa no céu da cidade.
                   </p>
                 </DialogDescription>
@@ -437,7 +437,7 @@ const CreateStoryPage = () => {
               <DialogFooter className="sm:justify-center">
                 <Button
                   type="button"
-                  className="bg-orange-600 hover:bg-orange-500 text-white"
+                  className="text-white bg-orange-600 hover:bg-orange-500"
                   onClick={() => setShowFirstStoryDialog(false)}
                 >
                   Vamos começar!
@@ -454,7 +454,7 @@ const CreateStoryPage = () => {
               localStorage.removeItem('token');
               router.push('/');
             }}
-            className="fixed bottom-4 right-4 bg-orange-50/90 hover:bg-orange-100/90 text-orange-800 shadow-md backdrop-blur-sm transition-all"
+            className="fixed right-4 bottom-4 text-orange-800 shadow-md backdrop-blur-sm transition-all bg-orange-50/90 hover:bg-orange-100/90"
           >
             Logout
           </Button>
