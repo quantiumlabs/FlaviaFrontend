@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cloud } from "lucide-react";
-import { VideoIntro } from "@/components/VideoIntro";
 import confetti from "canvas-confetti";
 import Cookies from "js-cookie";
 
@@ -133,16 +132,19 @@ const PixelTextTransition = ({ onComplete }) => {
 export default function Home() {
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
-  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const [showStart, setShowStart] = useState(true);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isBloomComplete, setIsBloomComplete] = useState(false);
   const [showPixelTransition, setShowPixelTransition] = useState(false);
   const [showMainContent, setShowMainContent] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
-  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
-  const [audioChoiceMade, setAudioChoiceMade] = useState(false);
-  const [isSafari, setIsSafari] = useState(false);
+  const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
+  
+  const videoRef = useRef(null);
   const videoIntroAudioRef = useRef(null);
   const ceusLogoAudioRef = useRef(null);
   const mainMenuAudioRef = useRef(null);
@@ -153,17 +155,6 @@ export default function Home() {
     if (token) {
       router.push("/map");
     } else {
-      // Check if it's Safari
-      const safariCheck = /^((?!chrome|android).)*safari/i.test(
-        navigator.userAgent,
-      );
-      setIsSafari(safariCheck);
-
-      // If not Safari, no audio choice needed
-      if (!safariCheck) {
-        setAudioChoiceMade(true);
-      }
-
       setIsVisible(true);
     }
   }, [router]);
@@ -200,7 +191,29 @@ export default function Home() {
     }
   }, [showMainContent, audioEnabled]);
 
-  // Function to play intro audios - will be passed to VideoIntro
+  // Video playback effects
+  useEffect(() => {
+    if (!isVideoPlaying) return;
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.error("Video playback failed:", error);
+        handleVideoEnd();
+      });
+    }
+  }, [isVideoPlaying]);
+
+  useEffect(() => {
+    if (!isVideoPlaying) return;
+    if (videoRef.current) {
+      videoRef.current.addEventListener('timeupdate', () => {
+        if (videoRef.current.duration - videoRef.current.currentTime < 0.5) {
+          handleVideoEnd();
+        }
+      });
+    }
+  }, [isVideoPlaying]);
+
+  // Function to play intro audios
   const playIntroAudios = () => {
     if (videoIntroAudioRef.current) {
       videoIntroAudioRef.current.currentTime = 0;
@@ -227,48 +240,70 @@ export default function Home() {
     }
   };
 
-  // Function to enable audio after user interaction
-  const enableAudio = () => {
+  
+
+  const handleStart = () => {
     setAudioEnabled(true);
-    setShowAudioPrompt(false);
-    setAudioChoiceMade(true);
-    if (showMainContent) {
+    setShowStart(false);
+    setIsVideoPlaying(true);
+
+    // Unlock all audio files by playing and pausing them immediately.
+    const audioElements = [
+      videoIntroAudioRef,
+      ceusLogoAudioRef,
+      mainMenuAudioRef,
+      menuAudioRef,
+    ];
+
+    audioElements.forEach((audioRef) => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {});
+        audioRef.current.pause();
+      }
+    });
+
+    // Play intro audios
+    playIntroAudios();
+
+    // Play main menu audio after a 14-second delay
+    setTimeout(() => {
       startMainMenuAudio();
+    }, 14000);
+
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
     }
   };
 
-  // Function to dismiss audio prompt
-  const dismissAudioPrompt = () => {
-    setShowAudioPrompt(false);
-    setAudioChoiceMade(true);
+  const handleVideoEnd = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsVideoPlaying(false);
+      setTimeout(() => {
+        setIsBloomComplete(true);
+        handleIntroComplete();
+      }, 3000);
+    }, 500);
   };
+
   const handleIntroComplete = () => {
-    setIsIntroComplete(true);
     setShowPixelTransition(true);
   };
 
   const handleTransitionComplete = () => {
     setShowPixelTransition(false);
-
-    // For Safari users, show audio prompt before main content
-    if (isSafari && !audioChoiceMade) {
-      setShowAudioPrompt(true);
-    } else {
-      setShowMainContent(true);
-    }
+    setShowMainContent(true);
   };
 
-  // Effect to show main content after audio choice is made
   useEffect(() => {
     if (
-      audioChoiceMade &&
       !showMainContent &&
       !showPixelTransition &&
-      isIntroComplete
+      isBloomComplete
     ) {
       setShowMainContent(true);
     }
-  }, [audioChoiceMade, showMainContent, showPixelTransition, isIntroComplete]);
+  }, [showMainContent, showPixelTransition, isBloomComplete]);
 
   const handleTitleClick = () => {
     setClickCount((prev) => prev + 1);
@@ -276,6 +311,13 @@ export default function Home() {
       triggerConfetti();
       setShowModal(true);
       setClickCount(0);
+    }
+  };
+
+  const playMenuSound = () => {
+    if (menuAudioRef.current) {
+      menuAudioRef.current.currentTime = 0;
+      menuAudioRef.current.play().catch(() => {});
     }
   };
 
@@ -294,166 +336,442 @@ export default function Home() {
         ref={videoIntroAudioRef}
         src="/track/videointro.wav"
         className="hidden"
+        playsInline
       />
       <audio
         ref={ceusLogoAudioRef}
         src="/track/ceuslogo.wav"
         className="hidden"
+        playsInline
       />
       <audio
         ref={mainMenuAudioRef}
         src="/track/mainmenu.wav"
         loop
         className="hidden"
+        playsInline
       />
-      <audio ref={menuAudioRef} src="/track/menu.wav" className="hidden" />
+      <audio ref={menuAudioRef} src="/track/menu.wav" className="hidden" playsInline />
 
-      {/* Audio prompt - show independently of main content */}
       <AnimatePresence>
-        {showAudioPrompt && (
+        {showTransitionOverlay && (
           <motion.div
-            className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/80"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="p-6 w-full max-w-sm text-center bg-white rounded-lg shadow-xl"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-            >
-              <h2 className="font-['Press_Start_2P'] text-lg text-orange-500 mb-4">
-                🎵 Ativar Áudio?
-              </h2>
-              <p className="text-gray-700 mb-6">
-                Deseja ativar o áudio do menu principal para uma experiência
-                mais imersiva?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  className="px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600 flex-1"
-                  onClick={enableAudio}
-                >
-                  Sim
-                </button>
-                <button
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 flex-1"
-                  onClick={dismissAudioPrompt}
-                >
-                  Não
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+            transition={{ duration: 1.0, ease: "easeInOut" }}
+            className="fixed inset-0 z-[999] bg-white"
+          />
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {isVisible && !isIntroComplete && (
-          <VideoIntro
-            onIntroComplete={handleIntroComplete}
-            onPlayAudios={playIntroAudios}
-          />
-        )}
-
-        {showPixelTransition && (
-          <PixelTextTransition onComplete={handleTransitionComplete} />
-        )}
-
-        {showMainContent && (
-          <motion.div
-            className="relative min-h-screen w-full overflow-x-hidden bg-[url('/story.png')] bg-cover bg-center bg-no-repeat"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/60"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 2 }}
-            />
-
-            <div className="relative z-10 w-full">
-              <header className="p-6">
-                <div className="flex justify-between items-center mx-auto max-w-7xl">
+      <div className="relative w-full h-screen">
+        <AnimatePresence mode="wait">
+          {isVisible && !isBloomComplete && (
+            <>
+              {/* Start Button Overlay */}
+              <AnimatePresence>
+                {showStart && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 1 }}
+                    className="flex overflow-hidden absolute inset-0 z-50 flex-col justify-center items-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8 }}
+                    style={{
+                      background: 'linear-gradient(135deg, #e0f2f7 0%, #ffffff 50%, #ffe0b2 100%)'
+                    }}
                   >
-                    <Cloud className="w-8 h-8 text-white pixel-icon" />
-                  </motion.div>
-                  <PixelButton
-                    variant="secondary"
-                    onClick={() => router.push("/auth")}
-                    className="text-xs"
-                  >
-                    LOGIN
-                  </PixelButton>
-                </div>
-              </header>
+                    {/* Animated Clouds Background */}
+                    <div className="absolute inset-0">
+                      {[...Array(10)].map((_, i) => (
+                        <motion.div
+                          key={`cloud-${i}`}
+                          className="absolute rounded-full opacity-60"
+                          initial={{
+                            x: `${Math.random() * 120 - 10}%`,
+                            y: `${Math.random() * 120 - 10}%`,
+                            scale: 0
+                          }}
+                          animate={{
+                            x: [`${Math.random() * 120 - 10}%`, `${Math.random() * 120 - 10}%`],
+                            y: [`${Math.random() * 120 - 10}%`, `${Math.random() * 120 - 10}%`],
+                            scale: [0.5, 1, 0.5],
+                            rotate: [0, 180]
+                          }}
+                          transition={{
+                            duration: 10 + Math.random() * 5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: Math.random() * 3
+                          }}
+                          style={{
+                            width: `${Math.random() * 150 + 80}px`,
+                            height: `${Math.random() * 80 + 40}px`,
+                            background: 'rgba(255, 255, 255, 0.6)',
+                            filter: 'blur(10px)',
+                            borderRadius: '50px'
+                          }}
+                        />
+                      ))}
+                    </div>
 
-              <main className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center px-6 py-12">
-                <AnimatePresence>
-                  {showModal && (
-                    <motion.div
-                      className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/80"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        className="p-6 w-full max-w-sm text-center bg-white rounded-lg shadow-xl"
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0.8 }}
-                      >
-                        <h2 className="font-['Press_Start_2P'] text-xl text-orange-500 mb-4">
-                          🎉 Créditos 🎉
-                        </h2>
-                        <p className="text-gray-700">
-                          Céus foi desenvolvido por{" "}
-                          <a
-                            href="https://github.com/quantiumlabs"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-orange-500 hover:underline"
-                          >
-                            Quantium Labs
-                          </a>
-                        </p>
-                        <button
-                          className="px-4 py-2 mt-6 text-white bg-orange-500 rounded hover:bg-orange-600"
-                          onClick={() => setShowModal(false)}
-                        >
-                          Fechar
-                        </button>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    {/* Floating Particles */}
+                    <div className="absolute inset-0">
+                      {[...Array(15)].map((_, i) => (
+                        <motion.div
+                          key={`particle-${i}`}
+                          className="absolute rounded-full"
+                          initial={{
+                            x: `${Math.random() * 100}%`,
+                            y: `${100 + Math.random() * 10}%`,
+                            opacity: 0
+                          }}
+                          animate={{
+                            y: [`${100 + Math.random() * 10}%`, `${-10}%`],
+                            opacity: [0, 0.6, 0],
+                            scale: [0.3, 0.8, 0.3]
+                          }}
+                          transition={{
+                            duration: 6 + Math.random() * 3,
+                            delay: Math.random() * 2,
+                            repeat: Infinity,
+                            ease: "easeOut"
+                          }}
+                          style={{
+                            width: `${Math.random() * 3 + 1}px`,
+                            height: `${Math.random() * 3 + 1}px`,
+                            background: 'rgba(255, 165, 0, 0.5)',
+                            boxShadow: '0 0 8px rgba(255, 165, 0, 0.3)'
+                          }}
+                        />
+                      ))}
+                    </div>
 
-                {/* Loading screen for Safari users waiting for audio choice */}
-                {isSafari &&
-                  !audioChoiceMade &&
-                  isIntroComplete &&
-                  !showPixelTransition && (
-                    <motion.div
-                      className="flex fixed inset-0 z-40 justify-center items-center bg-black"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                    {/* Enhanced Heavenly Button */}
+                    <motion.button
+                      onClick={handleStart}
+                      className="relative px-12 py-6 text-xl font-['Press_Start_2P'] text-white rounded-xl overflow-hidden group"
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.8, delay: 1, type: "spring", bounce: 0.2 }}
+                      whileHover={{ 
+                        scale: 1.05,
+                        boxShadow: '0 10px 30px rgba(249, 115, 22, 0.5)'
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{
+                        background: 'linear-gradient(45deg, #f97316, #fb923c, #f97316)',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 8px 25px rgba(249, 115, 22, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3)'
+                      }}
                     >
-                      <div className="text-center">
-                        <div className="w-8 h-8 mb-4 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                        <p className="text-white font-['Press_Start_2P'] text-sm">
-                          Aguardando configuração de áudio...
-                        </p>
+                      {/* Button Background Glow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 transition-opacity duration-500 transform -skew-x-12 group-hover:opacity-20" />
+                      
+                      {/* Button Sparkles */}
+                      <div className="absolute inset-0">
+                        {[...Array(6)].map((_, i) => (
+                          <motion.div
+                            key={`sparkle-${i}`}
+                            className="absolute bg-white rounded-full"
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{
+                              scale: [0, 1, 0],
+                              opacity: [0, 1, 0],
+                              rotate: [0, 180]
+                            }}
+                            transition={{
+                              duration: 2,
+                              delay: i * 0.3,
+                              repeat: Infinity,
+                              repeatDelay: 1
+                            }}
+                            style={{
+                              width: '3px',
+                              height: '3px',
+                              left: `${Math.random() * 80 + 10}%`,
+                              top: `${Math.random() * 80 + 10}%`,
+                              filter: 'blur(0.5px)'
+                            }}
+                          />
+                        ))}
                       </div>
+                      
+                      <span className="relative z-10">Entrar no Céus</span>
+                    </motion.button>
+
+                    {/* Ethereal Mist Effect */}
+                    <div className="absolute right-0 bottom-0 left-0 h-32">
+                      {[...Array(3)].map((_, i) => (
+                        <motion.div
+                          key={`mist-${i}`}
+                          className="absolute bottom-0 rounded-full"
+                          initial={{ 
+                            x: `${Math.random() * 100}%`,
+                            y: '100%',
+                            opacity: 0 
+                          }}
+                          animate={{
+                            y: [100, -30],
+                            opacity: [0, 0.2, 0],
+                            scale: [0.3, 1]
+                          }}
+                          transition={{
+                            duration: 4,
+                            delay: i * 1,
+                            repeat: Infinity,
+                            ease: "easeOut"
+                          }}
+                          style={{
+                            width: `${Math.random() * 100 + 50}px`,
+                            height: `${Math.random() * 50 + 20}px`,
+                            background: 'rgba(255, 255, 255, 0.3)',
+                            filter: 'blur(10px)'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Video Layer */}
+              <motion.div
+                className="absolute inset-0 w-full h-full"
+                initial={{ opacity: 1, filter: 'blur(0px)' }}
+                animate={{ 
+                  opacity: isTransitioning ? 0 : 1,
+                  scale: isTransitioning ? 1.1 : 1,
+                  filter: isTransitioning ? 'blur(20px)' : 'blur(0px)'
+                }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
+              >
+                <video
+                  ref={videoRef}
+                  className="object-cover w-full h-full"
+                  src="/intro.mp4"
+                  muted
+                  playsInline
+                  style={{ display: isVideoPlaying ? "block" : "none" }}
+                />
+              </motion.div>
+
+              {/* Transition Effects */}
+              <AnimatePresence>
+                {isTransitioning && !isBloomComplete && (
+                  <>
+                    {/* Dynamic Particle Field */}
+                    <motion.div
+                      className="absolute inset-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 2 }}
+                    >
+                      {[...Array(100)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute rounded-full"
+                          initial={{
+                            x: `${50}%`,
+                            y: `${50}%`,
+                            scale: 0,
+                            opacity: 0
+                          }}
+                          animate={{
+                            x: `${Math.random() * 100}%`,
+                            y: `${Math.random() * 100}%`,
+                            scale: [0, 1, 0],
+                            opacity: [0, 0.4, 0],
+                            filter: ['blur(0px)', 'blur(2px)', 'blur(0px)']
+                          }}
+                          transition={{
+                            duration: 2 + Math.random() * 2,
+                            ease: "easeOut",
+                            delay: Math.random() * 0.5
+                          }}
+                          style={{
+                            width: `${Math.random() * 4 + 2}px`,
+                            height: `${Math.random() * 4 + 2}px`,
+                            background: `rgba(${Math.random() * 50 + 200}, ${Math.random() * 50 + 150}, ${Math.random() * 50 + 100}, 0.3)`,
+                            backdropFilter: 'blur(8px)'
+                          }}
+                        />
+                      ))}
                     </motion.div>
-                  )}
+
+                    {/* Blurred Background Elements */}
+                    {[...Array(5)].map((_, i) => (
+                      <motion.div
+                        key={`blur-${i}`}
+                        className="absolute rounded-full"
+                        initial={{
+                          x: `${Math.random() * 100}%`,
+                          y: `${Math.random() * 100}%`,
+                          scale: 0,
+                          opacity: 0
+                        }}
+                        animate={{
+                          scale: [1, 2, 1],
+                          opacity: [0, 0.3, 0],
+                          filter: ['blur(10px)', 'blur(20px)', 'blur(10px)']
+                        }}
+                        transition={{
+                          duration: 3,
+                          delay: i * 0.2,
+                          ease: "easeInOut"
+                        }}
+                        style={{
+                          width: '200px',
+                          height: '200px',
+                          background: `radial-gradient(circle, rgba(255,180,100,0.2) 0%, rgba(255,140,50,0.1) 50%, transparent 100%)`,
+                          mixBlendMode: 'screen'
+                        }}
+                      />
+                    ))}
+
+                    {/* Floating Dust Particles */}
+                    <motion.div
+                      className="absolute inset-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {[...Array(50)].map((_, i) => (
+                        <motion.div
+                          key={`dust-${i}`}
+                          className="absolute rounded-full"
+                          initial={{
+                            x: `${Math.random() * 100}%`,
+                            y: `${Math.random() * 100}%`,
+                            opacity: 0
+                          }}
+                          animate={{
+                            y: [`${Math.random() * 100}%`, `${Math.random() * 100}%`],
+                            x: [`${Math.random() * 100}%`, `${Math.random() * 100}%`],
+                            opacity: [0, 0.3, 0]
+                          }}
+                          transition={{
+                            duration: 4 + Math.random() * 2,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                            ease: "easeInOut"
+                          }}
+                          style={{
+                            width: `${Math.random() * 2 + 1}px`,
+                            height: `${Math.random() * 2 + 1}px`,
+                            background: 'rgba(255, 255, 255, 0.3)',
+                            filter: 'blur(1px)'
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {showPixelTransition && (
+            <PixelTextTransition onComplete={handleTransitionComplete} />
+          )}
+
+          {showMainContent && (
+            <motion.div
+              className="relative z-10 bg-black"
+              initial={{ opacity: 0, filter: 'blur(10px)' }}
+              animate={{ 
+                opacity: 1,
+                scale: 1,
+                filter: 'blur(0px)'
+              }}
+              transition={{ 
+                duration: 3,
+                ease: "easeOut",
+                delay: 0.5
+              }}
+            >
+              <motion.div
+                className="relative min-h-screen w-full overflow-x-hidden bg-[url('/story.png')] bg-cover bg-center bg-no-repeat"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1 }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/60"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 2 }}
+                />
+
+                <div className="relative z-10 w-full">
+                  <header className="p-6">
+                    <div className="flex justify-between items-center mx-auto max-w-7xl">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1 }}
+                      >
+                        <Cloud className="w-8 h-8 text-white pixel-icon" />
+                      </motion.div>
+                      <PixelButton
+                        variant="secondary"
+                        onClick={() => {
+                          playMenuSound();
+                          setShowTransitionOverlay(true);
+                          setTimeout(() => {
+                            router.push("/auth");
+                          }, 1000); // Adjust delay as needed for transition
+                        }}
+                        className="text-xs"
+                      >
+                        LOGIN
+                      </PixelButton>
+                    </div>
+                  </header>
+
+                  <main className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center px-6 py-12">
+                    <AnimatePresence>
+                      {showModal && (
+                        <motion.div
+                          className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/80"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <motion.div
+                            className="p-6 w-full max-w-sm text-center bg-white rounded-lg shadow-xl"
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                          >
+                            <h2 className="font-['Press_Start_2P'] text-xl text-orange-500 mb-4">
+                              🎉 Créditos 🎉
+                            </h2>
+                            <p className="text-gray-700">
+                              Céus foi desenvolvido por{" "}
+                              <a
+                                href="https://github.com/quantiumlabs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-orange-500 hover:underline"
+                              >
+                                Quantium Labs
+                              </a>
+                            </p>
+                            <button
+                              className="px-4 py-2 mt-6 text-white bg-orange-500 rounded hover:bg-orange-600"
+                              onClick={() => setShowModal(false)}
+                            >
+                              Fechar
+                            </button>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    
 
                 <motion.div
                   className="space-y-8"
@@ -481,10 +799,14 @@ export default function Home() {
                   </p>
 
                   <PixelButton
-                    onClick={() => router.push("/auth?mode=register")}
+                    onClick={() => {
+                      playMenuSound();
+                      setShowTransitionOverlay(true);
+                      setTimeout(() => {
+                        router.push("/auth?mode=register");
+                      }, 1000); // Adjust delay as needed for transition
+                    }}
                     className="px-8 py-4 text-sm md:text-base"
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                   >
                     COMEÇAR JORNADA
                     <motion.span
@@ -510,9 +832,11 @@ export default function Home() {
                 </motion.button>
               </footer>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </>
   );
 }
