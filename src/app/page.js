@@ -7,6 +7,7 @@ import { Cloud } from "lucide-react";
 import confetti from "canvas-confetti";
 import Cookies from "js-cookie";
 
+
 // PixelButton Component
 const PixelButton = ({
   children,
@@ -37,6 +38,15 @@ const PixelButton = ({
 const PixelTextTransition = ({ onComplete }) => {
   const [stage, setStage] = useState("initial");
   const text = "C é u s";
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      router.push("/map");
+    } else {
+      setIsVisible(true);
+    }
+  }, [router]);
 
   useEffect(() => {
     const centerTimer = setTimeout(() => {
@@ -165,8 +175,8 @@ export default function Home() {
       // Fade out and stop intro audios
       if (videoIntroAudioRef.current) {
         const fadeOut = setInterval(() => {
-          if (videoIntroAudioRef.current.volume > 0.1) {
-            videoIntroAudioRef.current.volume -= 0.1;
+          if (videoIntroAudioRef.current.volume > 1) {
+            videoIntroAudioRef.current.volume -= 1;
           } else {
             videoIntroAudioRef.current.pause();
             clearInterval(fadeOut);
@@ -175,8 +185,8 @@ export default function Home() {
       }
       if (ceusLogoAudioRef.current) {
         const fadeOut = setInterval(() => {
-          if (ceusLogoAudioRef.current.volume > 0.1) {
-            ceusLogoAudioRef.current.volume -= 0.1;
+          if (ceusLogoAudioRef.current.volume > 1) {
+            ceusLogoAudioRef.current.volume -= 1;
           } else {
             ceusLogoAudioRef.current.pause();
             clearInterval(fadeOut);
@@ -230,12 +240,12 @@ export default function Home() {
   // Function to start main menu audio
   const startMainMenuAudio = () => {
     if (mainMenuAudioRef.current) {
-      mainMenuAudioRef.current.volume = 0.5;
+      mainMenuAudioRef.current.volume = 1;
       mainMenuAudioRef.current.play().catch(() => {});
     }
 
     if (menuAudioRef.current) {
-      menuAudioRef.current.volume = 0.5;
+      menuAudioRef.current.volume = 1;
       menuAudioRef.current.play().catch(() => {});
     }
   };
