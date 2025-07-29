@@ -38,16 +38,16 @@ const PixelButton = ({
 const PixelTextTransition = ({ onComplete }) => {
   const [stage, setStage] = useState("initial");
   const text = "C é u s";
-  const router = useRouter();
+  // const router = useRouter();
 
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) {
-      router.push("/map");
-    } else {
-      setIsVisible(true);
-    }
-  }, [router]);
+  // useEffect(() => {
+  //   const token = Cookies.get("token");
+  //   if (token) {
+  //     router.push("/map");
+  //   } else {
+  //     setIsVisible(true);
+  //   }
+  // }, [router]);
 
   useEffect(() => {
     const centerTimer = setTimeout(() => {
