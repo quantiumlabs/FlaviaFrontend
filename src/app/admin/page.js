@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "react-toastify";
 import {
   Dialog,
@@ -21,14 +22,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import SafariAudioPlayer from "@/components/ui/SafariAudioPlayer";
 import {
   ImageIcon,
   Music,
-  Play,
-  Pause,
   XCircle,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Calendar,
+  User,
+  Trash2,
 } from "lucide-react";
 import {
   LineChart,
@@ -126,8 +130,6 @@ const COLORS = [
 
 const MediaPreview = ({ type, urls, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + urls.length) % urls.length);
@@ -137,38 +139,19 @@ const MediaPreview = ({ type, urls, onClose }) => {
     setCurrentIndex((prev) => (prev + 1) % urls.length);
   };
 
-  const toggleAudio = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, []);
-
   if (!urls.length) return null;
 
   return (
     <Dialog open={urls.length > 0} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-sm sm:text-base">
             {type === "image" ? "Visualização de Imagem" : "Player de Áudio"}
           </DialogTitle>
         </DialogHeader>
         <div className="relative">
           {type === "image" ? (
-            <div className="flex relative justify-center items-center rounded-md aspect-video bg-black/5">
+            <div className="flex relative justify-center items-center rounded-md aspect-video bg-black/5 max-h-[70vh]">
               <img
                 src={urls[currentIndex]}
                 alt={`Imagem ${currentIndex + 1}`}
@@ -179,7 +162,7 @@ const MediaPreview = ({ type, urls, onClose }) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2"
+                    className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2"
                     onClick={handlePrevious}
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -187,7 +170,7 @@ const MediaPreview = ({ type, urls, onClose }) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2"
                     onClick={handleNext}
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -196,46 +179,29 @@ const MediaPreview = ({ type, urls, onClose }) => {
               )}
             </div>
           ) : (
-            <div className="p-4 rounded-md bg-black/5">
-              <audio
-                ref={audioRef}
-                src={urls[currentIndex]}
-                onEnded={() => setIsPlaying(false)}
-                className="hidden"
-              />
-              <div className="flex gap-4 justify-center items-center">
+            <div className="p-3 sm:p-4 rounded-md bg-black/5">
+              <div className="flex gap-2 sm:gap-4 justify-center items-center mb-3">
                 {urls.length > 1 && (
                   <Button variant="ghost" size="icon" onClick={handlePrevious}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleAudio}
-                  className="w-12 h-12"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-6 h-6" />
-                  ) : (
-                    <Play className="w-6 h-6" />
-                  )}
-                </Button>
+                <span className="text-xs sm:text-sm text-gray-500">
+                  Áudio {currentIndex + 1} de {urls.length}
+                </span>
                 {urls.length > 1 && (
                   <Button variant="ghost" size="icon" onClick={handleNext}>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 )}
               </div>
-              <p className="mt-2 text-sm text-center text-gray-500">
-                Áudio {currentIndex + 1} de {urls.length}
-              </p>
+              <SafariAudioPlayer audioUrl={urls[currentIndex]} />
             </div>
           )}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2"
+            className="absolute top-1 sm:top-2 right-1 sm:right-2"
             onClick={() => onClose()}
           >
             <XCircle className="w-4 h-4" />
@@ -465,10 +431,10 @@ const AdminDashboard = () => {
 
   return (
     <main className="overflow-hidden min-h-screen bg-gray-50">
-      <div className="max-w-[90rem] mx-auto px-4 py-6 space-y-6 h-screen overflow-y-auto">
+      <div className="max-w-[90rem] mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 h-screen overflow-y-auto">
         <div className="flex flex-col gap-4 justify-between items-start sm:flex-row sm:items-center">
-          <h1 className="text-2xl font-bold">Painel Administrativo</h1>
-          <div className="flex gap-4 w-full sm:w-auto">
+          <h1 className="text-xl sm:text-2xl font-bold">Painel Administrativo</h1>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
             <Button
               onClick={() => router.push("/map")}
               variant="outline"
@@ -486,29 +452,29 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-120px)]">
-          <div className="pb-6 space-y-6">
+        <ScrollArea className="h-[calc(100vh-140px)]">
+          <div className="pb-6 space-y-4 sm:space-y-6">
             {/* Painel de Análises */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              <div className="p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-lg font-semibold">Total de Histórias</h3>
-                <p className="text-3xl font-bold">{analytics.totalStories}</p>
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Total de Histórias</h3>
+                <p className="text-2xl sm:text-3xl font-bold">{analytics.totalStories}</p>
               </div>
-              <div className="p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-lg font-semibold">Conteúdo Sinalizado</h3>
-                <p className="text-3xl font-bold">{analytics.flaggedContent}</p>
+              <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Conteúdo Sinalizado</h3>
+                <p className="text-2xl sm:text-3xl font-bold">{analytics.flaggedContent}</p>
               </div>
-              <div className="p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-lg font-semibold">Histórias com Mídia</h3>
-                <p className="text-3xl font-bold">{analytics.storiesWithMedia}</p>
+              <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Histórias com Mídia</h3>
+                <p className="text-2xl sm:text-3xl font-bold">{analytics.storiesWithMedia}</p>
               </div>
             </div>
 
             {/* Gráficos */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-4 text-lg font-semibold">Histórias por Dia</h3>
-                <div style={{ width: "100%", height: 300 }}>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+              <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
+                <h3 className="mb-4 text-sm sm:text-lg font-semibold">Histórias por Dia</h3>
+                <div style={{ width: "100%", height: 250, minHeight: "250px" }}>
                   <ResponsiveContainer>
                     <LineChart data={analytics.dailyPosts}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -527,11 +493,11 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-4 text-lg font-semibold">
+              <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
+                <h3 className="mb-4 text-sm sm:text-lg font-semibold">
                   Distribuição de Sinalizações
                 </h3>
-                <div style={{ width: "100%", height: 300 }}>
+                <div style={{ width: "100%", height: 250, minHeight: "250px" }}>
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie
@@ -547,8 +513,8 @@ const AdminDashboard = () => {
                         )}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        innerRadius={40}
+                        outerRadius={60}
                         fill="#8884d8"
                         dataKey="value"
                         label
@@ -578,71 +544,183 @@ const AdminDashboard = () => {
                 <p className="text-gray-500">Nenhuma história encontrada</p>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[150px]">Usuário</TableHead>
-                        <TableHead>Conteúdo</TableHead>
-                        <TableHead className="w-[100px]">Mídia</TableHead>
-                        <TableHead className="w-[120px]">Localização</TableHead>
-                        <TableHead className="w-[180px]">Data</TableHead>
-                        <TableHead className="w-[150px]">Sinalizações</TableHead>
-                        <TableHead className="w-[100px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {stories.map((story) => {
-                        const flags = checkInappropriateContent(story.content);
-                        const images = (story.mediaUrls || []).filter((url) =>
-                          url.startsWith("data:image"),
-                        );
-                        const audios = (story.mediaUrls || []).filter((url) =>
-                          url.startsWith("data:audio"),
-                        );
+              <div className="space-y-4">
+                {/* Desktop Table View */}
+                <div className="hidden lg:block bg-white rounded-lg shadow">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[150px]">Usuário</TableHead>
+                          <TableHead>Conteúdo</TableHead>
+                          <TableHead className="w-[100px]">Mídia</TableHead>
+                          <TableHead className="w-[120px]">Localização</TableHead>
+                          <TableHead className="w-[180px]">Data</TableHead>
+                          <TableHead className="w-[150px]">Sinalizações</TableHead>
+                          <TableHead className="w-[100px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {stories.map((story) => {
+                          const flags = checkInappropriateContent(story.content);
+                          const images = (story.mediaUrls || []).filter((url) =>
+                            url.startsWith("data:image"),
+                          );
+                          const audios = (story.mediaUrls || []).filter((url) =>
+                            url.startsWith("data:audio"),
+                          );
 
-                        return (
-                          <TableRow key={story.id}>
-                            <TableCell className="font-medium">
-                              {story.user.username}
-                            </TableCell>
-                            <TableCell className="max-w-[300px] truncate">
+                          return (
+                            <TableRow key={story.id}>
+                              <TableCell className="font-medium">
+                                {story.user.username}
+                              </TableCell>
+                              <TableCell className="max-w-[300px] truncate">
+                                {story.content}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  {images.length > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleMediaPreview(story, "image")
+                                      }
+                                    >
+                                      <ImageIcon className="w-4 h-4" />
+                                      <span className="hidden ml-2 sm:inline">
+                                        {images.length}
+                                      </span>
+                                    </Button>
+                                  )}
+                                  {audios.length > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleMediaPreview(story, "audio")
+                                      }
+                                    >
+                                      <Music className="w-4 h-4" />
+                                      <span className="hidden ml-2 sm:inline">
+                                        {audios.length}
+                                      </span>
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <a
+                                  href={getGoogleMapsLink(
+                                    story.latitude,
+                                    story.longitude,
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  Ver no Mapa
+                                </a>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(story.createdAt).toLocaleString()}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {flags.map((flag) => (
+                                    <Badge
+                                      key={flag}
+                                      variant="destructive"
+                                      className="text-xs"
+                                    >
+                                      {flag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDelete(story.id)}
+                                >
+                                  Excluir
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="lg:hidden space-y-3">
+                  {stories.map((story) => {
+                    const flags = checkInappropriateContent(story.content);
+                    const images = (story.mediaUrls || []).filter((url) =>
+                      url.startsWith("data:image"),
+                    );
+                    const audios = (story.mediaUrls || []).filter((url) =>
+                      url.startsWith("data:audio"),
+                    );
+
+                    return (
+                      <Card key={story.id} className="shadow-sm">
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium text-sm">
+                                {story.user.username}
+                              </span>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(story.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <p className="text-sm text-gray-700 leading-relaxed">
                               {story.content}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                {images.length > 0 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleMediaPreview(story, "image")
-                                    }
-                                  >
-                                    <ImageIcon className="w-4 h-4" />
-                                    <span className="hidden ml-2 sm:inline">
-                                      {images.length}
-                                    </span>
-                                  </Button>
-                                )}
-                                {audios.length > 0 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleMediaPreview(story, "audio")
-                                    }
-                                  >
-                                    <Music className="w-4 h-4" />
-                                    <span className="hidden ml-2 sm:inline">
-                                      {audios.length}
-                                    </span>
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            {images.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMediaPreview(story, "image")}
+                                className="text-xs"
+                              >
+                                <ImageIcon className="w-3 h-3 mr-1" />
+                                {images.length} img
+                              </Button>
+                            )}
+                            {audios.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMediaPreview(story, "audio")}
+                                className="text-xs"
+                              >
+                                <Music className="w-3 h-3 mr-1" />
+                                {audios.length} áudio
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
                               <a
                                 href={getGoogleMapsLink(
                                   story.latitude,
@@ -654,37 +732,32 @@ const AdminDashboard = () => {
                               >
                                 Ver no Mapa
                               </a>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(story.createdAt).toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-1">
-                                {flags.map((flag) => (
-                                  <Badge
-                                    key={flag}
-                                    variant="destructive"
-                                    className="text-xs"
-                                  >
-                                    {flag}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDelete(story.id)}
-                              >
-                                Excluir
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>
+                                {new Date(story.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          {flags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {flags.map((flag) => (
+                                <Badge
+                                  key={flag}
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  {flag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
