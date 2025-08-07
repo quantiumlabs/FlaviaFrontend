@@ -128,7 +128,7 @@ const COLORS = [
   "#AF19FF",
 ];
 
-const MediaPreview = ({ type, urls, onClose }) => {
+const MediaPreview = ({ type, urls, onClose, downloadMedia }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handlePrevious = () => {
@@ -145,8 +145,35 @@ const MediaPreview = ({ type, urls, onClose }) => {
     <Dialog open={urls.length > 0} onOpenChange={() => onClose()}>
       <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-sm sm:text-base">
-            {type === "image" ? "Visualização de Imagem" : "Player de Áudio"}
+          <DialogTitle className="flex justify-between items-center text-sm sm:text-base">
+            <span>
+              {type === "image" ? "Visualização de Imagem" : "Player de Áudio"}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadMedia(
+                    urls[currentIndex],
+                    `${type}_${currentIndex + 1}${
+                      type === "image" ? ".jpg" : ".mp3"
+                    }`,
+                  )
+                }
+              >
+                Baixar Atual
+              </Button>
+              {urls.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadZip(urls, type)}
+                >
+                  Baixar Todos
+                </Button>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
         <div className="relative">
@@ -415,6 +442,83 @@ const AdminDashboard = () => {
     }
   };
 
+  const downloadMedia = (url, filename) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadZip = async (urls, type) => {
+    try {
+      // Dynamic import JSZip only when needed
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      const promises = urls.map(async (url, index) => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const extension = type === 'image' ? '.jpg' : '.mp3';
+        zip.file(`${type}_${index + 1}${extension}`, blob);
+      });
+
+      await Promise.all(promises);
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `media_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error creating zip:', error);
+      toast.error('Falha ao baixar arquivos');
+    }
+  };
+
+  const downloadAllMedia = async () => {
+    try {
+      const allMedia = stories.reduce((acc, story) => {
+        const images = (story.mediaUrls || []).filter(url => url.startsWith("data:image"));
+        const audios = (story.mediaUrls || []).filter(url => url.startsWith("data:audio"));
+        return [...acc, ...images, ...audios];
+      }, []);
+
+      if (allMedia.length === 0) {
+        toast.info("Não há arquivos de mídia para baixar");
+        return;
+      }
+
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      const promises = allMedia.map(async (url, index) => {
+        const isImage = url.startsWith("data:image");
+        const extension = isImage ? '.jpg' : '.mp3';
+        const type = isImage ? 'image' : 'audio';
+        zip.file(`${type}_${index + 1}${extension}`, url.split(',')[1], {base64: true});
+      });
+
+      await Promise.all(promises);
+      const content = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `todas_midias_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      
+      toast.success('Download iniciado com sucesso');
+    } catch (error) {
+      console.error('Erro ao baixar todas as mídias:', error);
+      toast.error('Falha ao baixar arquivos');
+    }
+  };
+
   if (error) {
     return (
       <div className="p-4 min-h-screen bg-gray-50">
@@ -448,6 +552,14 @@ const AdminDashboard = () => {
               className="w-full sm:w-auto"
             >
               Exportar CSV
+            </Button>
+            <Button
+              onClick={downloadAllMedia}
+              disabled={loading || stories.length === 0}
+              variant="secondary"
+              className="w-full sm:w-auto"
+            >
+              Baixar Todas Mídias
             </Button>
           </div>
         </div>
@@ -695,26 +807,46 @@ const AdminDashboard = () => {
                           
                           <div className="flex flex-wrap gap-2">
                             {images.length > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleMediaPreview(story, "image")}
-                                className="text-xs"
-                              >
-                                <ImageIcon className="w-3 h-3 mr-1" />
-                                {images.length} img
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleMediaPreview(story, "image")}
+                                  className="text-xs"
+                                >
+                                  <ImageIcon className="w-3 h-3 mr-1" />
+                                  {images.length} img
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadZip(images, 'image')}
+                                  className="text-xs"
+                                >
+                                  ↓
+                                </Button>
+                              </div>
                             )}
                             {audios.length > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleMediaPreview(story, "audio")}
-                                className="text-xs"
-                              >
-                                <Music className="w-3 h-3 mr-1" />
-                                {audios.length} áudio
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleMediaPreview(story, "audio")}
+                                  className="text-xs"
+                                >
+                                  <Music className="w-3 h-3 mr-1" />
+                                  {audios.length} áudio
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadZip(audios, 'audio')}
+                                  className="text-xs"
+                                >
+                                  ↓
+                                </Button>
+                              </div>
                             )}
                           </div>
 
@@ -769,6 +901,7 @@ const AdminDashboard = () => {
           type={mediaPreview.type}
           urls={mediaPreview.urls}
           onClose={() => setMediaPreview({ type: null, urls: [] })}
+          downloadMedia={downloadMedia}
         />
       </div>
     </main>
