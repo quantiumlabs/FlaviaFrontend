@@ -1,8 +1,8 @@
-@import 'mapbox-gl/dist/mapbox-gl.css';
-@import 'react-toastify/dist/ReactToastify.css';
-@import '~react-toastify/dist/ReactToastify.min.css';
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-@import 'leaflet/dist/leaflet.css';
+@import "mapbox-gl/dist/mapbox-gl.css";
+@import "react-toastify/dist/ReactToastify.css";
+
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+@import "leaflet/dist/leaflet.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -115,14 +115,15 @@ body {
   .mapContainer {
     height: -webkit-fill-available;
   }
-  
+
   .mapboxgl-map {
     height: -webkit-fill-available !important;
   }
 }
 
 /* Fix for mobile browsers */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
