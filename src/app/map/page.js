@@ -13,6 +13,7 @@ import WeaveCloudDialog from '@/components/ui/WeaveCloudDialog';
 import FirstTimeTutorial from '@/components/ui/FirstTimeTutorial';
 import StoryDialog from '@/components/ui/StoryDialog';
 import PixelArtGameAudioPlayer from '@/components/ui/SafariAudioPlayer';
+import { useStoriesSocket } from '@/hooks/useStoriesSocket';
 
 import {
   Dialog,
@@ -63,6 +64,7 @@ const MapPage = () => {
   const [storyMedia, setStoryMedia] = useState([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState(null);
+  const { stories: rawStories } = useStoriesSocket(userLocation);
 
   const [challenges] = useState([
     {
@@ -104,7 +106,7 @@ const MapPage = () => {
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   const verifyTokenAndUsername = async (token, username) => {
-    const response = await fetch('https://ceusgame.com:5522/verify', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -184,7 +186,7 @@ const MapPage = () => {
       
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`https://ceusgame.com:5522/stories/modifications/pending`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/modifications/pending`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -407,126 +409,79 @@ const MapPage = () => {
       }
     };
   }, []);
-  const fetchAndUpdateStories = useCallback(async () => {
-    if (!userLocation || !map.current) return;
-  
-    let retryCount = 0;
-    const maxRetries = 3;
-  
-    const fetchStories = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (localStorage.getItem('firsttime') === 'true') {
-          setIsFirstTimeUser(true);
-        }
-  
-        const response = await fetch(
-          `https://ceusgame.com:5522/stories/nearby?latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=10`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-  
-        if (!response.ok) {
-          throw new Error('Failed to fetch stories');
-        }
-  
-        const data = await response.json();
-  
-        const processedStories = data.map(story => {
-          if (story.type === 'COLLABORATIVE') {
-            const contentParts = story.content.split('\r\n\r\n');
-            if (contentParts.length > 1) {
-              const collaboratorsLine = contentParts[0].trim();
-              if (collaboratorsLine.startsWith('Colaboradores:')) {
-                // Get collaborators array and filter out empty strings
-                const collaborators = collaboratorsLine
-                  .replace('Colaboradores:', '')
-                  .trim()
-                  .split(',')
-                  .map(c => c.trim())
-                  .filter(username => username); // Remove empty strings
-                
-                // Remove owner's username from collaborators if they wrote it
-                const ownerUsername = story.user.username;
-                const filteredCollaborators = collaborators.filter(username => 
-                  username !== ownerUsername
-                );
-                
-                story.collaborators = filteredCollaborators;
-                story.content = contentParts.slice(1).join('\r\n\r\n').trim();
-              }
-            }
-          } else {
-            story.collaborators = [];
-          }
-          return story;
-        });
-  
-        setStories(processedStories);
-        console.log('Histórias recuperadas:', processedStories);
-  
-        Object.values(storyMarkers.current).forEach((marker) => marker.remove());
-        storyMarkers.current = {};
-  
-        processedStories.forEach((story) => {
-          if (!story.latitude || !story.longitude) {
-            console.log('Story missing coordinates:', story.id);
-            return;
-          }
-  
-          const storyType = story.type || 'PERSONAL';
-          let markerColor;
-          if (storyType === 'PERSONAL') markerColor = '#FF5722';
-          else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
-          else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
-          else markerColor = '#9333EA';
-  
-          const el = document.createElement('div');
-          el.className = 'story-marker';
-          el.style.cssText = `
-            width: 15px;
-            height: 15px;
-            background: ${markerColor};
-            border-radius: 50%;
-            border: 2px solid white;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-          `;
-  
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([parseFloat(story.longitude), parseFloat(story.latitude)])
-            .addTo(map.current);
-  
-          el.addEventListener('click', () => {
-            console.log('Marker clicked for story ID:', story.id);
-            setSelectedStoryForDialog(story);
-            setIsStoryDialogOpen(true);
-          });
-  
-          storyMarkers.current[story.id] = marker;
-        });
-      } catch (error) {
-        console.error('Error fetching stories:', error);
-  
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`Retrying... (${retryCount}/${maxRetries})`);
-          await fetchStories();
-        } else {
-            window.alert('Erro ao buscar histórias. Verifique a sua conexão de internet.');
-        }
-      }
-    };
-  
-    fetchStories();
-  }, [userLocation, map]);
-  
   useEffect(() => {
-    fetchAndUpdateStories();
-    const interval = setInterval(fetchAndUpdateStories, 30000);
-    return () => clearInterval(interval);
-  }, [fetchAndUpdateStories]);
+    if (!map.current || !rawStories) return;
+
+    const processedStories = rawStories.map(s => {
+      const story = { ...s };
+      if (story.type === 'COLLABORATIVE') {
+        const contentParts = story.content.split('\r\n\r\n');
+        if (contentParts.length > 1) {
+          const collaboratorsLine = contentParts[0].trim();
+          if (collaboratorsLine.startsWith('Colaboradores:')) {
+            const collaborators = collaboratorsLine
+              .replace('Colaboradores:', '')
+              .trim()
+              .split(',')
+              .map(c => c.trim())
+              .filter(username => username);
+            
+            const ownerUsername = story.user.username;
+            const filteredCollaborators = collaborators.filter(username => 
+              username !== ownerUsername
+            );
+            
+            story.collaborators = filteredCollaborators;
+            story.content = contentParts.slice(1).join('\r\n\r\n').trim();
+          }
+        }
+      } else {
+        story.collaborators = [];
+      }
+      return story;
+    });
+
+    setStories(processedStories);
+    
+    // Update markers
+    Object.values(storyMarkers.current).forEach((marker) => marker.remove());
+    storyMarkers.current = {};
+
+    processedStories.forEach((story) => {
+      if (!story.latitude || !story.longitude) return;
+
+      const storyType = story.type || 'PERSONAL';
+      let markerColor;
+      if (storyType === 'PERSONAL') markerColor = '#FF5722';
+      else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
+      else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
+      else markerColor = '#9333EA';
+
+      const el = document.createElement('div');
+      el.className = 'story-marker';
+      el.style.cssText = `
+        width: 15px;
+        height: 15px;
+        background: ${markerColor};
+        border-radius: 50%;
+        border: 2px solid white;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      `;
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([parseFloat(story.longitude), parseFloat(story.latitude)])
+        .addTo(map.current);
+
+      el.addEventListener('click', () => {
+        setSelectedStoryForDialog(story);
+        setIsStoryDialogOpen(true);
+      });
+
+      storyMarkers.current[story.id] = marker;
+    });
+
+  }, [rawStories]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -553,7 +508,7 @@ const MapPage = () => {
       try {
         const token = localStorage.getItem('token');
         const response = await fetch(
-          `https://ceusgame.com:5522/stories/${selectedStoryForDialog.id}/media`,
+          `${process.env.NEXT_PUBLIC_API_URL}/stories/${selectedStoryForDialog.id}/media`,
           {
             method: 'POST',
             headers: {

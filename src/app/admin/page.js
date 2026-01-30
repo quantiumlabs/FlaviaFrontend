@@ -244,6 +244,12 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mediaPreview, setMediaPreview] = useState({ type: null, urls: [] });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 1
+  });
   const [analytics, setAnalytics] = useState({
     dailyPosts: [],
     categoryDistribution: [],
@@ -254,10 +260,10 @@ const AdminDashboard = () => {
   const router = useRouter();
 
   useEffect(() => {
-    fetchStories();
-  }, []);
+    fetchStories(pagination.page);
+  }, [pagination.page]);
 
-  const fetchStories = async () => {
+  const fetchStories = async (page = 1) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -266,12 +272,15 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await fetch("https://ceusgame.com:5522/admin/stories", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/stories/admin/all?page=${page}&limit=${pagination.limit}`, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
@@ -282,9 +291,12 @@ const AdminDashboard = () => {
         throw new Error(`Erro HTTP! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      setStories(data);
-      updateAnalytics(data);
+      const responseData = await response.json();
+      setStories(responseData.data);
+      setPagination(prev => ({ ...prev, ...responseData.meta }));
+      
+      // Update analytics with the fetched batch (Note: precise analytics might need a separate endpoint)
+      updateAnalytics(responseData.data);
     } catch (error) {
       console.error("Erro ao buscar histórias:", error);
       setError(error.message);
@@ -345,7 +357,7 @@ const AdminDashboard = () => {
       if (!token) throw new Error("Token de autenticação não encontrado");
 
       const response = await fetch(
-        `https://ceusgame.com:5522/stories/${storyId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/stories/${storyId}`,
         {
           method: "DELETE",
           headers: {
@@ -765,6 +777,57 @@ const AdminDashboard = () => {
                         })}
                       </TableBody>
                     </Table>
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                  <div className="flex justify-between flex-1 sm:hidden">
+                    <Button
+                      onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+                      disabled={pagination.page === 1}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, pagination.totalPages) }))}
+                      disabled={pagination.page === pagination.totalPages}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Mostrando página <span className="font-medium">{pagination.page}</span> de <span className="font-medium">{pagination.totalPages}</span> ({pagination.total} resultados)
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="inline-flex relative z-0 -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        <Button
+                          onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+                          disabled={pagination.page === 1}
+                          variant="outline"
+                          className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
+                        >
+                          <span className="sr-only">Anterior</span>
+                          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, pagination.totalPages) }))}
+                          disabled={pagination.page === pagination.totalPages}
+                          variant="outline"
+                          className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
+                        >
+                          <span className="sr-only">Próxima</span>
+                          <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                        </Button>
+                      </nav>
+                    </div>
                   </div>
                 </div>
 

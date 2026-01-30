@@ -52,7 +52,7 @@ const CreateCollabStoryPage = () => {
 
 
   const verifyTokenAndUsername = async (token, username) => {
-    const response = await fetch('https://ceusgame.com:5522/verify', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ const CreateCollabStoryPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://ceusgame.com:5522/stories', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

@@ -34,7 +34,7 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
         throw new Error('User ID is missing');
       }
 
-      const response = await fetch(`https://ceusgame.com:5522/stories/modifications/pending`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/modifications/pending`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -63,7 +63,7 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
   const handleRequest = async (requestId, approve) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`https://ceusgame.com:5522/stories/modifications/${requestId}/handle`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/modifications/${requestId}/handle`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -40,7 +40,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
         formData.append('media', file);
       });
   
-      const response = await fetch(`https://ceusgame.com:5522/stories/${story.id}/modifications`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories/${story.id}/modifications`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
