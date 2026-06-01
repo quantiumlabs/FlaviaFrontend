@@ -787,6 +787,7 @@ const MapPage = () => {
                               className="w-full h-auto rounded-lg object-contain max-h-[60vh]"
                               quality={80}
                               loading="lazy"
+                              unoptimized={true}
                             />
                           ) : url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
                             <div className="p-3 bg-gray-50 rounded-lg">
