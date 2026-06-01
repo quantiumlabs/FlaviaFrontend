@@ -177,7 +177,7 @@ const CreateCollabStoryPage = () => {
 		const audioBlob = new Blob(audioChunksRef.current);
 		// Convert to WAV for better compatibility
 		const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
-		setAudioFile(audioFile);
+		setMediaFiles(prev => [...prev, audioFile]);
 		setShowMediaAlert(true);
 		setTimeout(() => setShowMediaAlert(false), 3000);
 	  };
