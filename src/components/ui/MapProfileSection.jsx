@@ -5,6 +5,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { getMediaUrl } from '@/lib/media';
+
 const MapProfileSection = ({ user, onLogout, isOpen }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -169,13 +171,22 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
                           <div 
                             key={index}
                             className="relative cursor-pointer group"
-                            onClick={() => setSelectedImage(url)}
+                            onClick={() => !url.match(/\.(mp3|wav|ogg|m4a)$/i) && setSelectedImage(url)}
                           >
-                            <Image
-                              src={url}
-                              alt={`New media ${index + 1}`}
-                              className="object-cover w-full h-16 rounded-md transition-opacity group-hover:opacity-90"
-                            />
+                            {url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
+                              <div className="w-full h-16 bg-blue-50 flex items-center justify-center rounded-md border border-blue-100">
+                                <span className="text-xs font-medium text-blue-600">🎵 Áudio</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={getMediaUrl(url)}
+                                alt={`New media ${index + 1}`}
+                                className="object-cover w-full h-16 rounded-md transition-opacity group-hover:opacity-90"
+                                unoptimized={true}
+                                width={64}
+                                height={64}
+                              />
+                            )}
                             <div className="absolute inset-0 bg-black bg-opacity-0 rounded-md transition-all duration-200 group-hover:bg-opacity-10" />
                           </div>
                         ))}
@@ -254,10 +265,13 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
               <XCircle className="w-6 h-6" />
             </Button>
             <Image
-              src={selectedImage}
+              src={getMediaUrl(selectedImage)}
               alt="Fullscreen view"
               className="object-contain max-w-full max-h-full"
               onClick={(e) => e.stopPropagation()}
+              unoptimized={true}
+              width={1200}
+              height={1200}
             />
           </div>
         </DialogContent>
