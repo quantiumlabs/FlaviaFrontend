@@ -47,6 +47,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
+import { getMediaUrl } from "@/lib/media";
 
 // Filtros de conteúdo inapropriado
 const contentFilters = {
@@ -180,7 +181,7 @@ const MediaPreview = ({ type, urls, onClose, downloadMedia }) => {
           {type === "image" ? (
             <div className="flex relative justify-center items-center rounded-md aspect-video bg-black/5 max-h-[70vh]">
               <img
-                src={urls[currentIndex].startsWith('data:') ? urls[currentIndex] : `${process.env.NEXT_PUBLIC_API_URL}${urls[currentIndex]}`}
+                src={getMediaUrl(urls[currentIndex])}
                 alt={`Imagem ${currentIndex + 1}`}
                 className="max-h-[60vh] max-w-full object-contain"
               />
@@ -222,7 +223,7 @@ const MediaPreview = ({ type, urls, onClose, downloadMedia }) => {
                   </Button>
                 )}
               </div>
-              <SafariAudioPlayer audioUrl={urls[currentIndex].startsWith('data:') ? urls[currentIndex] : `${process.env.NEXT_PUBLIC_API_URL}${urls[currentIndex]}`} />
+              <SafariAudioPlayer audioUrl={getMediaUrl(urls[currentIndex])} />
             </div>
           )}
           <Button
@@ -470,7 +471,7 @@ const AdminDashboard = () => {
       const zip = new JSZip();
       
       const promises = urls.map(async (url, index) => {
-        const fetchUrl = url.startsWith('data:') ? url : `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+        const fetchUrl = getMediaUrl(url);
         const response = await fetch(fetchUrl);
         const blob = await response.blob();
         const extension = type === 'image' ? '.jpg' : '.mp3';
@@ -516,7 +517,7 @@ const AdminDashboard = () => {
         if (url.startsWith('data:')) {
           zip.file(`${type}_${index + 1}${extension}`, url.split(',')[1], {base64: true});
         } else {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`);
+          const response = await fetch(getMediaUrl(url));
           const blob = await response.blob();
           zip.file(`${type}_${index + 1}${extension}`, blob);
         }

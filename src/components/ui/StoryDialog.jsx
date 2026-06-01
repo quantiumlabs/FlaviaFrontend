@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit2, AlertTriangle } from 'lucide-react';
 import StoryModificationDialog from '@/components/ui/StoryModificationDialog';
+import { getMediaUrl } from '@/lib/media';
 
 const containsSuspiciousContent = (content) => {
   const htmlRegex = /<[^>]*>/;
@@ -112,14 +113,14 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
                 <div key={index} className="relative">
                   {url.startsWith('data:image/') || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? (
                     <img
-                      src={url.startsWith('data:') ? url : `${process.env.NEXT_PUBLIC_API_URL}${url}`}
+                      src={getMediaUrl(url)}
                       alt={`Story media ${index + 1}`}
                       className="w-full h-auto rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     />
                   ) : url.startsWith('data:audio/') || /\\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <audio controls className="w-full">
-                        <source src={url.startsWith('data:') ? url : `${process.env.NEXT_PUBLIC_API_URL}${url}`} type="audio/mpeg" />
+                        <source src={getMediaUrl(url)} type="audio/mpeg" />
                         Your browser does not support the audio element.
                       </audio>
                     </div>

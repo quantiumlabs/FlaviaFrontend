@@ -14,6 +14,7 @@ import FirstTimeTutorial from '@/components/ui/FirstTimeTutorial';
 import StoryDialog from '@/components/ui/StoryDialog';
 import PixelArtGameAudioPlayer from '@/components/ui/SafariAudioPlayer';
 import { useStoriesSocket } from '@/hooks/useStoriesSocket';
+import { getMediaUrl } from '@/lib/media';
 
 import {
   Dialog,
@@ -779,7 +780,7 @@ const MapPage = () => {
                         <div key={index} className="relative">
                           {url.startsWith('data:image/') || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? (
                             <Image
-                              src={url.startsWith('data:') ? url : `${process.env.NEXT_PUBLIC_API_URL}${url}`}
+                              src={getMediaUrl(url)}
                               alt={`Conteúdo da história ${index + 1}`}
                               width={600}
                               height={400}
@@ -789,7 +790,7 @@ const MapPage = () => {
                             />
                           ) : url.startsWith('data:audio/') || /\\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
                             <div className="p-3 bg-gray-50 rounded-lg">
-                              <PixelArtGameAudioPlayer audioUrl={url.startsWith('data:') ? url : `${process.env.NEXT_PUBLIC_API_URL}${url}`} />
+                              <PixelArtGameAudioPlayer audioUrl={getMediaUrl(url)} />
                             </div>
                           ) : null}
                         </div>
