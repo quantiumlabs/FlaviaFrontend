@@ -389,8 +389,8 @@ const AdminDashboard = () => {
     const mediaUrls = story.mediaUrls || [];
     const filteredUrls = mediaUrls.filter((url) =>
       type === "image"
-        ? url.startsWith("data:image") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-        : url.startsWith("data:audio") || /\\.(mp3|wav|ogg|m4a)$/i.test(url),
+        ? url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+        : url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
     );
     setMediaPreview({ type, urls: filteredUrls });
   };
@@ -496,8 +496,8 @@ const AdminDashboard = () => {
   const downloadAllMedia = async () => {
     try {
       const allMedia = stories.reduce((acc, story) => {
-        const images = (story.mediaUrls || []).filter(url => url.startsWith("data:image") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url));
-        const audios = (story.mediaUrls || []).filter(url => url.startsWith("data:audio") || /\\.(mp3|wav|ogg|m4a)$/i.test(url));
+        const images = (story.mediaUrls || []).filter(url => url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
+        const audios = (story.mediaUrls || []).filter(url => url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url));
         return [...acc, ...images, ...audios];
       }, []);
 
@@ -510,7 +510,7 @@ const AdminDashboard = () => {
       const zip = new JSZip();
       
       const promises = allMedia.map(async (url, index) => {
-        const isImage = url.startsWith("data:image") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        const isImage = url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
         const extension = isImage ? '.jpg' : '.mp3';
         const type = isImage ? 'image' : 'audio';
         
@@ -697,10 +697,10 @@ const AdminDashboard = () => {
                         {stories.map((story) => {
                           const flags = checkInappropriateContent(story.content);
                           const images = (story.mediaUrls || []).filter((url) =>
-                            url.startsWith("data:image") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+                            url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
                           );
                           const audios = (story.mediaUrls || []).filter((url) =>
-                            url.startsWith("data:audio") || /\\.(mp3|wav|ogg|m4a)$/i.test(url),
+                            url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
                           );
 
                           return (
@@ -845,10 +845,10 @@ const AdminDashboard = () => {
                   {stories.map((story) => {
                     const flags = checkInappropriateContent(story.content);
                     const images = (story.mediaUrls || []).filter((url) =>
-                      url.startsWith("data:image") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+                      url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
                     );
                     const audios = (story.mediaUrls || []).filter((url) =>
-                      url.startsWith("data:audio") || /\\.(mp3|wav|ogg|m4a)$/i.test(url),
+                      url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
                     );
 
                     return (

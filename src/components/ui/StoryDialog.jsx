@@ -111,13 +111,13 @@ const StoryDialog = ({ story, isOpen, onClose }) => {
             <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
               {story.mediaUrls.map((url, index) => (
                 <div key={index} className="relative">
-                  {url.startsWith('data:image/') || /\\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? (
+                  {url.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? (
                     <img
                       src={getMediaUrl(url)}
                       alt={`Story media ${index + 1}`}
                       className="w-full h-auto rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     />
-                  ) : url.startsWith('data:audio/') || /\\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
+                  ) : url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <audio controls className="w-full">
                         <source src={getMediaUrl(url)} type="audio/mpeg" />
