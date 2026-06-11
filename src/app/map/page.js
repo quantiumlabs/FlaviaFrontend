@@ -438,17 +438,11 @@ const MapPage = () => {
       }
 
       .story-marker {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.2s ease;
       }
 
       .story-marker:hover {
-        transform: scale(1.1) translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;
-        z-index: 10;
-      }
-
-      .story-marker:active {
-        transform: scale(0.95);
+        transform: scale(1.2);
       }
     `;
     document.head.appendChild(style);
@@ -501,65 +495,38 @@ const MapPage = () => {
     Object.values(storyMarkers.current).forEach((marker) => marker.remove());
     storyMarkers.current = {};
 
-    // Group markers by location to prevent overlap
-    const locationGroups = {};
-    processedStories.forEach(story => {
+    processedStories.forEach((story) => {
       if (!story.latitude || !story.longitude) return;
-      const lat = parseFloat(story.latitude).toFixed(4);
-      const lng = parseFloat(story.longitude).toFixed(4);
-      const key = `${lat},${lng}`;
-      if (!locationGroups[key]) locationGroups[key] = [];
-      locationGroups[key].push(story);
-    });
 
-    Object.values(locationGroups).forEach((group) => {
-      const count = group.length;
-      group.forEach((story, index) => {
-        const storyType = story.type || 'PERSONAL';
-        let markerColor;
-        if (storyType === 'PERSONAL') markerColor = '#FF5722';
-        else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
-        else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
-        else markerColor = '#9333EA';
+      const storyType = story.type || 'PERSONAL';
+      let markerColor;
+      if (storyType === 'PERSONAL') markerColor = '#FF5722';
+      else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
+      else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
+      else markerColor = '#9333EA';
 
-        const el = document.createElement('div');
-        el.className = 'story-marker';
-        el.style.cssText = `
-          width: 36px;
-          height: 36px;
-          background: ${markerColor};
-          border-radius: 50%;
-          border: 3px solid white;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        `;
-        el.innerHTML = '<div style="width: 12px; height: 12px; background: white; border-radius: 50%; opacity: 0.9;"></div>';
+      const el = document.createElement('div');
+      el.className = 'story-marker';
+      el.style.cssText = `
+        width: 15px;
+        height: 15px;
+        background: ${markerColor};
+        border-radius: 50%;
+        border: 2px solid white;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      `;
 
-        // Calculate offset if there are multiple markers in the same location
-        let lng = parseFloat(story.longitude);
-        let lat = parseFloat(story.latitude);
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([parseFloat(story.longitude), parseFloat(story.latitude)])
+        .addTo(map.current);
 
-        if (count > 1) {
-          const offsetRadius = 0.00015; // Roughly 15 meters spread
-          const angle = (index / count) * Math.PI * 2;
-          lng += Math.cos(angle) * offsetRadius;
-          lat += Math.sin(angle) * offsetRadius;
-        }
-
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([lng, lat])
-          .addTo(map.current);
-
-        el.addEventListener('click', () => {
-          setSelectedStoryForDialog(story);
-          setIsStoryDialogOpen(true);
-        });
-
-        storyMarkers.current[story.id] = marker;
+      el.addEventListener('click', () => {
+        setSelectedStoryForDialog(story);
+        setIsStoryDialogOpen(true);
       });
+
+      storyMarkers.current[story.id] = marker;
     });
 
   }, [rawStories]);
