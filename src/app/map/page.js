@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   MoreVertical, LogOut, Trophy, Users, Cloud, 
-  Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2, Leaf, Swords
+  Target, Apple, Map as MapIcon, Menu, X, ChevronRight, Edit2, Leaf, Swords, AlertTriangle
 } from 'lucide-react';
 
 // Add this helper function at the top of the file with other constants
@@ -135,11 +135,11 @@ const MapPage = () => {
   
   const getStoryTypeBadge = (type) => {
     const types = {
-      OBJECT: { text: '🎯 Céus nas mãos', class: 'bg-purple-100 text-purple-800' },
-      COLLABORATIVE: { text: '👥 Céus cruzados', class: 'bg-blue-100 text-blue-800' },
-      PERSONAL: { text: '📝 Colecionar névoas', class: 'bg-orange-100 text-orange-800' }
+      OBJECT: { text: 'CEUS NAS MAOS', icon: '🎯', class: 'bg-purple-100 text-purple-800 border-purple-300' },
+      COLLABORATIVE: { text: 'CEUS CRUZADOS', icon: '👥', class: 'bg-blue-100 text-blue-800 border-blue-300' },
+      PERSONAL: { text: 'COLECIONAR NEVOAS', icon: '📝', class: 'bg-orange-100 text-orange-800 border-orange-300' }
     };
-    const defaultType = { text: '📝 Colecionar névoas', class: 'bg-orange-100 text-orange-800' };
+    const defaultType = { text: 'COLECIONAR NEVOAS', icon: '📝', class: 'bg-orange-100 text-orange-800 border-orange-300' };
     return types[type] || defaultType;
   };
   
@@ -741,42 +741,43 @@ const MapPage = () => {
 
       {/* Story Dialog */}
       <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto bg-amber-50 border-4 border-orange-500 sm:rounded-none rounded-none shadow-[8px_8px_0_0_rgba(249,115,22,0.5)] p-8">
           {selectedStoryForDialog && (
             <>
-              <DialogHeader className="sticky top-0 z-10 pb-4 bg-white">
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2 items-center mb-2">
-                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStoryTypeBadge(selectedStoryForDialog.type).class}`}>
+              <DialogHeader className="sticky top-0 z-10 pb-4 bg-amber-50">
+                <div className="flex flex-wrap justify-between items-center mb-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <span className={`inline-flex items-center gap-2 px-3 py-2 text-[8px] font-['Press_Start_2P'] border-2 ${getStoryTypeBadge(selectedStoryForDialog.type).class}`}>
+                      <span className="text-sm">{getStoryTypeBadge(selectedStoryForDialog.type).icon}</span>
                       {getStoryTypeBadge(selectedStoryForDialog.type).text}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-[8px] font-['Press_Start_2P'] text-slate-500">
                       {getTimeAgo(new Date(selectedStoryForDialog.createdAt))}
                     </span>
                   </div>
                   <button
                     onClick={() => setIsStoryDialogOpen(false)}
-                    className="p-1.5 rounded-full transition-colors hover:bg-gray-100"
+                    className="p-1.5 rounded-full transition-colors hover:bg-orange-100"
                   >
                   </button>
                 </div>
                 <DialogTitle>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-3 mt-2">
                     {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
                       [...new Set([selectedStoryForDialog.user.username, ...(selectedStoryForDialog.collaborators || [])])].map((username) => (
-                        <div key={username} className="flex gap-1.5 items-center px-3 py-1 bg-gray-50 rounded-full">
-                          <div className="flex justify-center items-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                        <div key={username} className="flex items-center gap-2 bg-white border-2 border-slate-300 px-3 py-2 shadow-sm">
+                          <div className="w-6 h-6 bg-blue-500 flex items-center justify-center text-white text-[10px] font-['Press_Start_2P'] border-2 border-blue-600">
                             {username.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-xs font-medium text-gray-700">{username}</span>
+                          <span className="text-[10px] font-['Press_Start_2P'] text-slate-800 uppercase">{username}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="flex gap-1.5 items-center px-3 py-1 bg-gray-50 rounded-full">
-                        <div className="flex justify-center items-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full">
+                      <div className="flex items-center gap-2 bg-white border-2 border-slate-300 px-3 py-2 shadow-sm">
+                        <div className="w-6 h-6 bg-blue-500 flex items-center justify-center text-white text-[10px] font-['Press_Start_2P'] border-2 border-blue-600">
                           {selectedStoryForDialog.user.username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-xs font-medium text-gray-700">{selectedStoryForDialog.user.username}</span>
+                        <span className="text-[10px] font-['Press_Start_2P'] text-slate-800 uppercase">{selectedStoryForDialog.user.username}</span>
                       </div>
                     )}
                   </div>
@@ -784,60 +785,67 @@ const MapPage = () => {
               </DialogHeader>
 
               <div className="mt-4">
-                {selectedStoryForDialog.type === 'COLLABORATIVE' ? (
-                  // For collaborative stories, check both content and usernames
-                  hasLinks(selectedStoryForDialog.content) || 
-                  selectedStoryForDialog.collaborators?.some(username => hasLinks(username)) ? (
-                    <p className="text-red-500 font-medium">Esta história continha um link e foi removida</p>
-                  ) : (
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
-                  )
+                {(selectedStoryForDialog.type === 'COLLABORATIVE' ? (
+                  hasLinks(selectedStoryForDialog.content) || selectedStoryForDialog.collaborators?.some(username => hasLinks(username))
+                ) : hasLinks(selectedStoryForDialog.content)) ? (
+                  <div className="mt-4 bg-red-100 border-4 border-red-500 p-4">
+                    <div className="flex items-start">
+                      <AlertTriangle className="h-6 w-6 text-red-600 mr-4 shrink-0" />
+                      <p className="text-[8px] font-['Press_Start_2P'] text-red-800 leading-relaxed uppercase">
+                        ATENCAO: Esta historia contem links ou codigos HTML suspeitos e foi ocultada.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
-                  // For regular stories, just check content
-                  hasLinks(selectedStoryForDialog.content) ? (
-                    <p className="text-red-500 font-medium">Esta história continha um link e foi removida</p>
-                  ) : (
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedStoryForDialog.content}</p>
-                  )
+                  <div className="mt-6 bg-white border-4 border-slate-300 p-5 relative shadow-inner">
+                    <div className="absolute top-0 left-0 w-2 h-2 bg-slate-300 -mt-2 -ml-2"></div>
+                    <div className="absolute top-0 right-0 w-2 h-2 bg-slate-300 -mt-2 -mr-2"></div>
+                    <div className="absolute bottom-0 left-0 w-2 h-2 bg-slate-300 -mb-2 -ml-2"></div>
+                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-slate-300 -mb-2 -mr-2"></div>
+                    <p className="font-['Press_Start_2P'] text-[10px] text-slate-800 leading-[2] whitespace-pre-wrap uppercase">
+                      {selectedStoryForDialog.content}
+                    </p>
+                  </div>
                 )}
               </div>
 
               {selectedStoryForDialog.hasMedia && (
-                <div className="mt-4">
+                <div className="mt-6">
                   {mediaLoading && (
-                    <div className="py-4 text-center text-gray-500">
-                      <div className="inline-block mb-2 w-6 h-6 rounded-full border-2 border-current animate-spin border-t-transparent" />
-                      Carregando mídia...
+                    <div className="py-8 bg-white border-4 border-slate-300 flex flex-col items-center justify-center">
+                      <div className="inline-block mb-4 w-8 h-8 border-4 border-orange-500 border-t-transparent animate-spin" />
+                      <p className="font-['Press_Start_2P'] text-[8px] text-slate-500 uppercase">Carregando midia...</p>
                     </div>
                   )}
 
                   {mediaError && (
-                    <div className="py-4 text-center text-red-500">
-                      <p className="mt-1">
+                    <div className="py-6 px-4 bg-red-50 border-4 border-red-300 text-center">
+                      <p className="font-['Press_Start_2P'] text-[8px] text-red-600 uppercase leading-relaxed">
                         {mediaError.includes('too far') 
-                          ? 'Aproxime-se para visualizar a mídia'
-                          : 'Erro ao carregar conteúdo'}
+                          ? 'Aproxime-se para visualizar a midia'
+                          : 'Erro ao carregar conteudo'}
                       </p>
                     </div>
                   )}
 
                   {!mediaLoading && !mediaError && storyMedia.length > 0 && (
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {storyMedia.map((url, index) => (
-                        <div key={index} className="relative">
+                        <div key={index} className="relative border-4 border-slate-300 bg-white p-1">
                           {url.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? (
                             <Image
                               src={getMediaUrl(url)}
                               alt={`Conteúdo da história ${index + 1}`}
                               width={600}
                               height={400}
-                              className="w-full h-auto rounded-lg object-contain max-h-[60vh]"
+                              className="w-full h-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{ imageRendering: 'pixelated' }}
                               quality={80}
                               loading="lazy"
                               unoptimized={true}
                             />
                           ) : url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
-                            <div className="p-3 bg-gray-50 rounded-lg">
+                            <div className="bg-slate-100 p-3 border-2 border-slate-200">
                               <PixelArtGameAudioPlayer audioUrl={getMediaUrl(url)} />
                             </div>
                           ) : null}
@@ -848,9 +856,8 @@ const MapPage = () => {
                 </div>
               )}
 
-
               {(!selectedStoryForDialog.type || selectedStoryForDialog.type === 'PERSONAL') && (
-                <div className="sticky bottom-0 pt-2 mt-4 bg-white">
+                <div className="sticky bottom-0 pt-4 mt-8 bg-amber-50 flex justify-end">
                   <button
                     onClick={() => {
                       setShowModificationDialog(true);
@@ -858,10 +865,10 @@ const MapPage = () => {
                       setSelectedStory(selectedStoryForDialog);
                     }}
                     style={{ display: isFirstTimeUser ? 'none' : 'flex' }}
-                    className="gap-2 justify-center items-center px-4 py-2 w-full text-sm font-medium text-blue-600 rounded-lg transition-colors duration-200 hover:text-blue-700 hover:bg-blue-50"
+                    className="relative px-4 py-3 font-['Press_Start_2P'] text-[10px] transition-all duration-100 active:translate-y-1 bg-orange-500 text-white border-b-4 border-r-4 border-orange-700 hover:border-b-2 hover:border-r-2 hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(249,115,22,0.3)] flex items-center gap-3"
                   >
                     <Edit2 className="w-4 h-4" />
-                    Tecer uma nova versão
+                    <span>TECER NOVA VERSAO</span>
                   </button>
                 </div>
               )}
