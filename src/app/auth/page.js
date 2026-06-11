@@ -19,9 +19,9 @@ const PixelButton = ({
     primary:
       "bg-orange-500 text-white border-b-4 border-r-4 border-orange-700 hover:border-b-2 hover:border-r-2 hover:translate-y-1 hover:shadow-lg hover:shadow-orange-500/30",
     secondary:
-      "bg-white/10 backdrop-blur-sm text-white border-b-4 border-r-4 border-white/30 hover:border-b-2 hover:border-r-2 hover:translate-y-1 hover:bg-white/20",
+      "bg-white/90 backdrop-blur-sm text-slate-800 border-b-4 border-r-4 border-slate-300 hover:border-b-2 hover:border-r-2 hover:translate-y-1 hover:bg-white",
     ghost:
-      "bg-transparent text-white border-b-4 border-r-4 border-transparent hover:border-white/30 hover:bg-white/10 hover:border-b-2 hover:border-r-2 hover:translate-y-1",
+      "bg-transparent text-slate-700 border-b-4 border-r-4 border-transparent hover:border-slate-300 hover:bg-white/50 hover:border-b-2 hover:border-r-2 hover:translate-y-1",
   };
 
   return (
@@ -41,7 +41,7 @@ const PixelInput = ({ ...props }) => {
   return (
     <input
       {...props}
-      className={`w-full px-4 py-4 bg-white/90 border-4 border-slate-800 focus:outline-none focus:border-orange-500 focus:bg-white font-['Press_Start_2P'] text-xs text-slate-900 placeholder-slate-500 transition-colors ${props.className || ""}`}
+      className={`w-full px-4 py-4 bg-white border-4 border-slate-300 focus:outline-none focus:border-orange-500 font-['Press_Start_2P'] text-xs text-slate-900 placeholder-slate-400 transition-colors ${props.className || ""}`}
     />
   );
 };
@@ -74,7 +74,7 @@ export default function AuthPage() {
       "Invalid credentials": "USUARIO OU SENHA INCORRETOS.",
       "Username and password are required": "PREENCHA TODOS OS CAMPOS.",
       "Usuário já existe": "NOME DE USUARIO JA EM USO.",
-      default: "OPS PARECE QUE ALGO DEU ERRADO. TENTE NOVAMENTE MAIS TARDE.",
+      default: "ALGO DEU ERRADO. TENTE NOVAMENTE.",
     };
     return errorMessages[message] || errorMessages.default;
   };
@@ -126,25 +126,25 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex flex-col justify-center items-center min-h-screen bg-[url('/story.png')] bg-cover bg-center bg-no-repeat overflow-hidden">
-      <div className="absolute inset-0 bg-black/60" />
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
 
       <div className="z-10 w-full max-w-lg px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-slate-900/90 backdrop-blur-sm border-4 border-orange-500 p-8 shadow-[8px_8px_0_0_rgba(249,115,22,0.5)]"
+          className="bg-amber-50/95 backdrop-blur-md border-4 border-orange-500 p-8 shadow-[8px_8px_0_0_rgba(249,115,22,0.5)]"
         >
           <div className="text-center mb-8">
             <h1
-              className="font-['Press_Start_2P'] text-2xl md:text-3xl text-white mb-2 tracking-widest"
+              className="font-['Press_Start_2P'] text-2xl md:text-3xl text-orange-600 mb-2 tracking-widest"
               style={{
-                textShadow: "2px 2px 0 #ea580c, 4px 4px 0 rgba(0,0,0,0.5)",
+                textShadow: "2px 2px 0 rgba(234,88,12,0.2)",
               }}
             >
               {isLogin ? "LOGIN" : "CADASTRO"}
             </h1>
-            <p className="font-['Press_Start_2P'] text-[10px] text-orange-200 mt-6 leading-loose">
+            <p className="font-['Press_Start_2P'] text-[10px] text-slate-500 mt-6 leading-loose">
               {isLogin
                 ? "BEM-VINDO DE VOLTA AO CEUS"
                 : "JUNTE-SE A NOSSA JORNADA"}
@@ -154,7 +154,7 @@ export default function AuthPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
               <div>
-                <label className="block font-['Press_Start_2P'] text-[10px] text-orange-400 mb-3">
+                <label className="block font-['Press_Start_2P'] text-[10px] text-slate-600 mb-3">
                   USUARIO
                 </label>
                 <PixelInput
@@ -173,7 +173,7 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="block font-['Press_Start_2P'] text-[10px] text-orange-400 mb-3">
+                <label className="block font-['Press_Start_2P'] text-[10px] text-slate-600 mb-3">
                   SENHA
                 </label>
                 <PixelInput
@@ -201,11 +201,8 @@ export default function AuthPage() {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-red-900/80 border-4 border-red-500 p-4 mt-6">
-                    <p
-                      className="font-['Press_Start_2P'] text-[10px] text-white leading-relaxed text-center"
-                      style={{ textShadow: "1px 1px 0 #000" }}
-                    >
+                  <div className="bg-red-100 border-4 border-red-500 p-4 mt-6">
+                    <p className="font-['Press_Start_2P'] text-[10px] text-red-700 leading-relaxed text-center">
                       {error}
                     </p>
                   </div>

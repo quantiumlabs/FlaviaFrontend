@@ -58,6 +58,13 @@ const MapPage = () => {
   const map = useRef(null);
   const geolocateControl = useRef(null);
   const storyMarkers = useRef({});
+  
+  // Custom user marker animation refs
+  const customUserMarkerRef = useRef(null);
+  const userLocTarget = useRef(null);
+  const userLocCurrent = useRef(null);
+  const animFrame = useRef(null);
+
   const [showChallenges, setShowChallenges] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [showModificationDialog, setShowModificationDialog] = useState(false);
@@ -330,6 +337,7 @@ const MapPage = () => {
       },
       trackUserLocation: true,
       showUserHeading: true,
+      showUserLocation: false,
       showAccuracyCircle: false
     });
 
@@ -340,12 +348,51 @@ const MapPage = () => {
       setUserLocation({ lng: longitude, lat: latitude });
       setLocationError(null);
       
-      // Smooth map transition
-      map.current.flyTo({
-        center: [longitude, latitude],
-        zoom: 18,
-        speed: 3
-      });
+      userLocTarget.current = { lng: longitude, lat: latitude };
+      
+      if (!userLocCurrent.current) {
+        userLocCurrent.current = { lng: longitude, lat: latitude };
+        
+        // Create custom user marker
+        const el = document.createElement('div');
+        el.className = 'custom-user-dot';
+        el.style.width = '18px';
+        el.style.height = '18px';
+        el.style.backgroundColor = '#1DA1F2';
+        el.style.borderRadius = '50%';
+        el.style.border = '3px solid white';
+        el.style.boxShadow = '0 0 12px rgba(29, 161, 242, 0.6)';
+        
+        customUserMarkerRef.current = new mapboxgl.Marker(el)
+          .setLngLat([longitude, latitude])
+          .addTo(map.current);
+      }
+      
+      const animateMarker = () => {
+        if (!userLocCurrent.current || !userLocTarget.current || !customUserMarkerRef.current) return;
+        
+        const current = userLocCurrent.current;
+        const target = userLocTarget.current;
+        
+        const dx = target.lng - current.lng;
+        const dy = target.lat - current.lat;
+        
+        // Lerp factor
+        current.lng += dx * 0.1;
+        current.lat += dy * 0.1;
+        
+        customUserMarkerRef.current.setLngLat([current.lng, current.lat]);
+        
+        if (Math.abs(dx) > 0.0000001 || Math.abs(dy) > 0.0000001) {
+          animFrame.current = requestAnimationFrame(animateMarker);
+        } else {
+          animFrame.current = null;
+        }
+      };
+      
+      if (!animFrame.current) {
+        animateMarker();
+      }
     });
 
     geolocateControl.current.on('error', (e) => {
@@ -391,11 +438,17 @@ const MapPage = () => {
       }
 
       .story-marker {
-        transition: transform 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .story-marker:hover {
-        transform: scale(1.2);
+        transform: scale(1.1) translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;
+        z-index: 10;
+      }
+
+      .story-marker:active {
+        transform: scale(0.95);
       }
     `;
     document.head.appendChild(style);
@@ -448,38 +501,65 @@ const MapPage = () => {
     Object.values(storyMarkers.current).forEach((marker) => marker.remove());
     storyMarkers.current = {};
 
-    processedStories.forEach((story) => {
+    // Group markers by location to prevent overlap
+    const locationGroups = {};
+    processedStories.forEach(story => {
       if (!story.latitude || !story.longitude) return;
+      const lat = parseFloat(story.latitude).toFixed(4);
+      const lng = parseFloat(story.longitude).toFixed(4);
+      const key = `${lat},${lng}`;
+      if (!locationGroups[key]) locationGroups[key] = [];
+      locationGroups[key].push(story);
+    });
 
-      const storyType = story.type || 'PERSONAL';
-      let markerColor;
-      if (storyType === 'PERSONAL') markerColor = '#FF5722';
-      else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
-      else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
-      else markerColor = '#9333EA';
+    Object.values(locationGroups).forEach((group) => {
+      const count = group.length;
+      group.forEach((story, index) => {
+        const storyType = story.type || 'PERSONAL';
+        let markerColor;
+        if (storyType === 'PERSONAL') markerColor = '#FF5722';
+        else if (storyType === 'OBJECT') markerColor = '#9B4DCA';
+        else if (storyType === 'COLLABORATIVE') markerColor = '#3B82F6';
+        else markerColor = '#9333EA';
 
-      const el = document.createElement('div');
-      el.className = 'story-marker';
-      el.style.cssText = `
-        width: 15px;
-        height: 15px;
-        background: ${markerColor};
-        border-radius: 50%;
-        border: 2px solid white;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-      `;
+        const el = document.createElement('div');
+        el.className = 'story-marker';
+        el.style.cssText = `
+          width: 36px;
+          height: 36px;
+          background: ${markerColor};
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+        el.innerHTML = '<div style="width: 12px; height: 12px; background: white; border-radius: 50%; opacity: 0.9;"></div>';
 
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([parseFloat(story.longitude), parseFloat(story.latitude)])
-        .addTo(map.current);
+        // Calculate offset if there are multiple markers in the same location
+        let lng = parseFloat(story.longitude);
+        let lat = parseFloat(story.latitude);
 
-      el.addEventListener('click', () => {
-        setSelectedStoryForDialog(story);
-        setIsStoryDialogOpen(true);
+        if (count > 1) {
+          const offsetRadius = 0.00015; // Roughly 15 meters spread
+          const angle = (index / count) * Math.PI * 2;
+          lng += Math.cos(angle) * offsetRadius;
+          lat += Math.sin(angle) * offsetRadius;
+        }
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([lng, lat])
+          .addTo(map.current);
+
+        el.addEventListener('click', () => {
+          setSelectedStoryForDialog(story);
+          setIsStoryDialogOpen(true);
+        });
+
+        storyMarkers.current[story.id] = marker;
       });
-
-      storyMarkers.current[story.id] = marker;
     });
 
   }, [rawStories]);
