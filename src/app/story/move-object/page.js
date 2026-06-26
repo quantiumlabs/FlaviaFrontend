@@ -1,19 +1,29 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { Camera, Loader2, Mic, Trash, Image as ImageIcon, X, Square, Play, Pause } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  Camera,
+  Loader2,
+  Mic,
+  Trash,
+  Image as ImageIcon,
+  X,
+  Square,
+  Play,
+  Pause,
+} from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import CameraCapture from '@/components/ui/CameraCapture'
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import CameraCapture from "@/components/ui/CameraCapture";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +31,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SkiesInHandsPage = () => {
   const [capturedImage, setCapturedImage] = useState(null);
@@ -30,18 +40,20 @@ const SkiesInHandsPage = () => {
   const [audioFile, setAudioFile] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [objectContent, setObjectContent] = useState('');
+  const [objectContent, setObjectContent] = useState("");
   const [showChallengeDialog, setShowChallengeDialog] = useState(true);
   const [hideChallenge, setHideChallenge] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [cloudLocation, setCloudLocation] = useState(null);
-  
+  const [error, setError] = useState("");
+
   // New audio recording states
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioURL, setAudioURL] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
-  
+  const [isProcessingMedia, setIsProcessingMedia] = useState(false);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -52,66 +64,66 @@ const SkiesInHandsPage = () => {
   const router = useRouter();
   const verifyTokenAndUsername = async (token, username) => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/verify`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         token,
         username,
       }),
     });
-  
+
     if (!response.ok) {
-      throw new Error('Verification failed');
+      throw new Error("Verification failed");
     }
-  
+
     const data = await response.json();
     return data.valid;
   };
 
-    useEffect(() => {
-      const setVH = () => {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-      };
+  useEffect(() => {
+    const setVH = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
 
-      setVH();
-      window.addEventListener('resize', setVH);
-      window.addEventListener('orientationchange', setVH);
+    setVH();
+    window.addEventListener("resize", setVH);
+    window.addEventListener("orientationchange", setVH);
 
-      return () => {
-        window.removeEventListener('resize', setVH);
-        window.removeEventListener('orientationchange', setVH);
-      };
-    }, []);
-
-    useEffect(() => {
-      const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user'));
-    
-        // Verify token and username
-      verifyTokenAndUsername(token, user.username)
-          .then((isValid) => {
-            if (!isValid) {
-              // If invalid, clear localStorage and redirect
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              router.push('/');
-            }
-          })
-          .catch(() => {
-            // Handle error case (e.g., network issue or invalid response)
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            router.push('/');
-          });
-      }, [router]);
+    return () => {
+      window.removeEventListener("resize", setVH);
+      window.removeEventListener("orientationchange", setVH);
+    };
+  }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // Verify token and username
+    verifyTokenAndUsername(token, user.username)
+      .then((isValid) => {
+        if (!isValid) {
+          // If invalid, clear localStorage and redirect
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          router.push("/");
+        }
+      })
+      .catch(() => {
+        // Handle error case (e.g., network issue or invalid response)
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.push("/");
+      });
+  }, [router]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push('/');
+      router.push("/");
       return;
     }
 
@@ -123,7 +135,13 @@ const SkiesInHandsPage = () => {
             longitude: position.coords.longitude,
           });
         },
-        (error) => console.error('Erro ao obter localização:', error),
+        (error) => {
+          console.error("Erro ao obter localização:", error);
+          if (error.code === error.TIMEOUT) {
+            alert("A busca por localização demorou demais. Verifique o sinal de GPS.");
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
     }
 
@@ -137,7 +155,7 @@ const SkiesInHandsPage = () => {
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   const startRecording = async () => {
@@ -153,22 +171,32 @@ const SkiesInHandsPage = () => {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        let mimeType = mediaRecorderRef.current.mimeType || "audio/webm";
+        let extension = "webm";
+        if (mimeType.includes("mp4")) extension = "mp4";
+        else if (mimeType.includes("ogg")) extension = "ogg";
+        else if (mimeType.includes("wav")) extension = "wav";
+        else if (mimeType.includes("aac")) extension = "aac";
+        else if (mimeType.includes("mpeg")) extension = "mp3";
+
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setAudioURL(url);
-        const file = new File([blob], 'recorded-audio.webm', { type: 'audio/webm' });
+        const file = new File([blob], `recorded-audio.${extension}`, {
+          type: mimeType,
+        });
         setAudioFile(file);
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setIsPaused(false);
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error("Error starting recording:", error);
     }
   };
 
@@ -180,7 +208,7 @@ const SkiesInHandsPage = () => {
       } else {
         mediaRecorderRef.current.resume();
         timerRef.current = setInterval(() => {
-          setRecordingTime(prev => prev + 1);
+          setRecordingTime((prev) => prev + 1);
         }, 1000);
       }
       setIsPaused(!isPaused);
@@ -205,7 +233,7 @@ const SkiesInHandsPage = () => {
         videoRef.current.play();
       }
     } catch (error) {
-      console.error('Erro ao acessar a câmera:', error);
+      console.error("Erro ao acessar a câmera:", error);
       setIsCapturing(false);
     }
   };
@@ -213,25 +241,45 @@ const SkiesInHandsPage = () => {
   const handleCapturePhoto = () => {
     if (canvasRef.current && videoRef.current) {
       const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext("2d");
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+      canvas.toBlob(async (blob) => {
+        let file = new File([blob], "captured-photo.jpg", {
+          type: "image/jpeg",
+        });
+
+        // Comprimir também imagem da câmera
+        try {
+          const { compressImage } = await import("@/lib/media");
+          file = await compressImage(file);
+        } catch (e) {}
+
         setCapturedImage(file);
         if (videoRef.current.srcObject) {
-          videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+          videoRef.current.srcObject
+            .getTracks()
+            .forEach((track) => track.stop());
         }
         setIsCapturing(false);
       });
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setUploadedImage(file);
+      setIsProcessingMedia(true);
+      try {
+        const { compressImage } = await import("@/lib/media");
+        const compressed = await compressImage(file);
+        setUploadedImage(compressed);
+      } catch (err) {
+        setUploadedImage(file);
+      } finally {
+        setIsProcessingMedia(false);
+      }
     }
   };
 
@@ -244,9 +292,9 @@ const SkiesInHandsPage = () => {
   };
 
   const removeMedia = (type) => {
-    if (type === 'captured') setCapturedImage(null);
-    if (type === 'uploaded') setUploadedImage(null);
-    if (type === 'audio') {
+    if (type === "captured") setCapturedImage(null);
+    if (type === "uploaded") setUploadedImage(null);
+    if (type === "audio") {
       setAudioFile(null);
       setAudioURL(null);
     }
@@ -254,53 +302,72 @@ const SkiesInHandsPage = () => {
 
   const handleSubmit = async () => {
     if (!cloudLocation) {
-      alert('Localização não disponível');
+      alert("Localização não disponível");
       return;
     }
 
-    if (!objectContent.trim() || (!capturedImage && !uploadedImage && !audioFile)) {
-      alert('Por favor, preencha o nome do objeto e adicione pelo menos uma mídia.');
+    if (
+      !objectContent.trim() ||
+      (!capturedImage && !uploadedImage && !audioFile)
+    ) {
+      alert(
+        "Por favor, preencha o nome do objeto e adicione pelo menos uma mídia.",
+      );
       return;
     }
 
+    setError("");
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append('content', objectContent);
-      formData.append('latitude', cloudLocation.latitude);
-      formData.append('longitude', cloudLocation.longitude);
-      formData.append('type', 'OBJECT');
-      if (capturedImage) formData.append('media', capturedImage);
-      if (uploadedImage) formData.append('media', uploadedImage);
-      if (audioFile) formData.append('media', audioFile);
+      formData.append("content", objectContent);
+      formData.append("latitude", cloudLocation.latitude);
+      formData.append("longitude", cloudLocation.longitude);
+      formData.append("type", "OBJECT");
+      if (capturedImage) formData.append("media", capturedImage);
+      if (uploadedImage) formData.append("media", uploadedImage);
+      if (audioFile) formData.append("media", audioFile);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stories`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/stories`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (response.ok) {
-        alert('Objeto registrado com sucesso!');
-        router.push('/map');
+        alert("Objeto registrado com sucesso!");
+        router.push("/map");
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(
+          errorData?.message ||
+            "Erro ao enviar. Verifique o tamanho da imagem e tente novamente.",
+        );
       }
     } catch (error) {
-      console.error('Erro ao registrar objeto:', error);
+      console.error("Erro ao registrar objeto:", error);
+      if (error.message && error.message.includes("Failed to fetch")) {
+        setError("Sem conexão com a internet. Verifique sua rede e tente novamente.");
+      } else {
+        setError("Erro de conexão ou servidor indisponível. Tente novamente.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
   return (
     <div className="absolute inset-0 bg-[url('/object.png')] bg-cover bg-center bg-no-repeat">
-      <div 
+      <div
         className="absolute inset-0 overflow-y-auto px-4 md:px-8"
-        style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
+        style={{ height: "calc(var(--vh, 1vh) * 100)" }}
       >
         <div className="py-8">
           <Card className="max-w-2xl mx-auto shadow-lg mb-8">
@@ -313,40 +380,53 @@ const SkiesInHandsPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-          <Input
-            placeholder="Nome do objeto deslocado"
-            value={objectContent}
-            onChange={(e) => setObjectContent(e.target.value)}
-            className="text-lg p-6 border-2 border-purple-100 focus:border-purple-300"
-          />
+              <Input
+                placeholder="Nome do objeto deslocado"
+                value={objectContent}
+                onChange={(e) => setObjectContent(e.target.value)}
+                className="text-lg p-6 border-2 border-purple-100 focus:border-purple-300"
+              />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {error && (
+                  <Alert
+                    variant="destructive"
+                    className="bg-red-50 border-red-200 md:col-span-2"
+                  >
+                    <AlertDescription className="text-red-800">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            {/* Upload and Recording Buttons */}
-            <div className="space-y-4">
+                {/* Upload and Recording Buttons */}
+                {!uploadedImage && (
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isProcessingMedia}
+                    className="flex flex-col gap-2 justify-center items-center h-20 bg-blue-50 border-2 border-blue-200 border-dashed transition-colors md:h-24 hover:bg-blue-100 disabled:opacity-50"
+                  >
+                    {isProcessingMedia ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 md:h-6 md:w-6" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-blue-500 md:h-6 md:w-6" />
+                    )}
+                    <span className="text-sm text-blue-700 md:text-base">
+                      {isProcessingMedia ? "Processando..." : "Adicionar Imagem"}
+                    </span>
+                  </Button>
+                )}
+              </div>
 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
               <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-full border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100"
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <ImageIcon className="h-6 w-6 text-purple-500" />
-                  <span className="text-purple-700">Adicionar Foto</span>
-                </div>
-              </Button>
-
-            </div>
-          </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            className="hidden"
-          />
-            <Button
                 onClick={() => setShowCamera(true)}
                 className="w-full h-full border-2 border-dashed border-purple-200 bg-purple-50 hover:bg-purple-100"
               >
@@ -365,101 +445,108 @@ const SkiesInHandsPage = () => {
                 />
               )}
 
-          {/* Preview Section */}
-          <div className="space-y-4">
-            {(capturedImage || uploadedImage || audioFile) && (
-              <Alert className="bg-purple-50 border-purple-200">
-                <AlertDescription>
-                  Mídia adicionada com sucesso! Revise abaixo:
-                </AlertDescription>
-              </Alert>
-            )}
+              {/* Preview Section */}
+              <div className="space-y-4">
+                {(capturedImage || uploadedImage || audioFile) && (
+                  <Alert className="bg-purple-50 border-purple-200">
+                    <AlertDescription>
+                      Mídia adicionada com sucesso! Revise abaixo:
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {capturedImage && (
-                <div className="relative group">
-                  <Image
-                    src={URL.createObjectURL(capturedImage)}
-                    alt="Foto capturada"
-                    className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
-                  />
-                  <Button
-                    onClick={() => removeMedia('captured')}
-                    className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {capturedImage && (
+                    <div className="relative group">
+                      <img
+                        src={URL.createObjectURL(capturedImage)}
+                        alt="Foto capturada"
+                        className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
+                      />
+                      <Button
+                        onClick={() => removeMedia("captured")}
+                        className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {uploadedImage && (
+                    <div className="relative group">
+                      <img
+                        src={URL.createObjectURL(uploadedImage)}
+                        alt="Foto enviada"
+                        className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
+                      />
+                      <Button
+                        onClick={() => removeMedia("uploaded")}
+                        className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {uploadedImage && (
-                <div className="relative group">
-                  <Image
-                    src={URL.createObjectURL(uploadedImage)}
-                    alt="Foto enviada"
-                    className="w-full rounded-lg shadow-md transition-transform group-hover:scale-[1.02]"
-                  />
-                  <Button
-                    onClick={() => removeMedia('uploaded')}
-                    className="absolute top-2 right-2 p-2 rounded-full bg-red-500 hover:bg-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white py-6 text-lg font-medium transition-colors"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Registrando Objeto...</span>
               </div>
-            ) : (
-              'Registrar Objeto Deslocado'
-            )}
-          </Button>
-          </CardContent>
+
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-6 text-lg font-medium transition-colors"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Registrando Objeto...</span>
+                  </div>
+                ) : (
+                  "Registrar Objeto Deslocado"
+                )}
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </div>
-      <Dialog 
-        open={showChallengeDialog} 
+      <Dialog
+        open={showChallengeDialog}
         onOpenChange={(open) => {
           setShowChallengeDialog(open);
           if (!open && hideChallenge) {
-            localStorage.setItem('hideChallengeDialog', 'true');
+            localStorage.setItem("hideChallengeDialog", "true");
           }
         }}
       >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-purple-800">Desafio Céus nas Mãos</DialogTitle>
-              <DialogDescription className="pt-4 text-base text-gray-700">
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-purple-800">
+              Desafio Céus nas Mãos
+            </DialogTitle>
+            <DialogDescription asChild className="pt-4 text-base text-gray-700">
+              <div>
                 <p className="mb-4">
-                  Você carrega histórias, visões de céus, ecos de lugares. Tudo que você vê é casa. Escolha um objeto, um pedaço desse lugar, mas que já mora em você.
+                  Você carrega histórias, visões de céus, ecos de lugares. Tudo
+                  que você vê é casa. Escolha um objeto, um pedaço desse lugar,
+                  mas que já mora em você.
                 </p>
                 <p className="font-semibold mb-4">
-                  Missão: Pegue um objeto e transporte-o para outro lugar. Depois, tire uma foto.
+                  Missão: Pegue um objeto e transporte-o para outro lugar. Depois,
+                  tire uma foto.
                 </p>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="sm:justify-center">
-              <Button
-                type="button"
-                className="bg-purple-600 hover:bg-purple-500 text-white"
-                onClick={() => setShowChallengeDialog(false)}
-              >
-                Entendi!
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-          </Dialog>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              className="bg-purple-600 hover:bg-purple-500 text-white"
+              onClick={() => setShowChallengeDialog(false)}
+            >
+              Entendi!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

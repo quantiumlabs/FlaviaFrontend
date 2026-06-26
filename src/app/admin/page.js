@@ -249,7 +249,7 @@ const AdminDashboard = () => {
     page: 1,
     limit: 50,
     total: 0,
-    totalPages: 1
+    totalPages: 1,
   });
   const [analytics, setAnalytics] = useState({
     dailyPosts: [],
@@ -274,13 +274,13 @@ const AdminDashboard = () => {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/stories/admin/all?page=${page}&limit=${pagination.limit}`, 
+        `${process.env.NEXT_PUBLIC_API_URL}/stories/admin/all?page=${page}&limit=${pagination.limit}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -294,8 +294,8 @@ const AdminDashboard = () => {
 
       const responseData = await response.json();
       setStories(responseData.data);
-      setPagination(prev => ({ ...prev, ...responseData.meta }));
-      
+      setPagination((prev) => ({ ...prev, ...responseData.meta }));
+
       // Update analytics with the fetched batch (Note: precise analytics might need a separate endpoint)
       updateAnalytics(responseData.data);
     } catch (error) {
@@ -389,8 +389,10 @@ const AdminDashboard = () => {
     const mediaUrls = story.mediaUrls || [];
     const filteredUrls = mediaUrls.filter((url) =>
       type === "image"
-        ? url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-        : url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
+        ? url.startsWith("data:image") ||
+          /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+        : url.startsWith("data:audio") ||
+          /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url),
     );
     setMediaPreview({ type, urls: filteredUrls });
   };
@@ -456,7 +458,7 @@ const AdminDashboard = () => {
   };
 
   const downloadMedia = (url, filename) => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -467,20 +469,20 @@ const AdminDashboard = () => {
   const downloadZip = async (urls, type) => {
     try {
       // Dynamic import JSZip only when needed
-      const JSZip = (await import('jszip')).default;
+      const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
-      
+
       const promises = urls.map(async (url, index) => {
         const fetchUrl = getMediaUrl(url);
         const response = await fetch(fetchUrl);
         const blob = await response.blob();
-        const extension = type === 'image' ? '.jpg' : '.mp3';
+        const extension = type === "image" ? ".jpg" : ".mp3";
         zip.file(`${type}_${index + 1}${extension}`, blob);
       });
 
       await Promise.all(promises);
-      const content = await zip.generateAsync({ type: 'blob' });
-      const link = document.createElement('a');
+      const content = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(content);
       link.download = `media_${new Date().getTime()}.zip`;
       document.body.appendChild(link);
@@ -488,16 +490,24 @@ const AdminDashboard = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error('Error creating zip:', error);
-      toast.error('Falha ao baixar arquivos');
+      console.error("Error creating zip:", error);
+      toast.error("Falha ao baixar arquivos");
     }
   };
 
   const downloadAllMedia = async () => {
     try {
       const allMedia = stories.reduce((acc, story) => {
-        const images = (story.mediaUrls || []).filter(url => url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
-        const audios = (story.mediaUrls || []).filter(url => url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url));
+        const images = (story.mediaUrls || []).filter(
+          (url) =>
+            url.startsWith("data:image") ||
+            /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+        );
+        const audios = (story.mediaUrls || []).filter(
+          (url) =>
+            url.startsWith("data:audio") ||
+            /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url),
+        );
         return [...acc, ...images, ...audios];
       }, []);
 
@@ -506,16 +516,20 @@ const AdminDashboard = () => {
         return;
       }
 
-      const JSZip = (await import('jszip')).default;
+      const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
-      
+
       const promises = allMedia.map(async (url, index) => {
-        const isImage = url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-        const extension = isImage ? '.jpg' : '.mp3';
-        const type = isImage ? 'image' : 'audio';
-        
-        if (url.startsWith('data:')) {
-          zip.file(`${type}_${index + 1}${extension}`, url.split(',')[1], {base64: true});
+        const isImage =
+          url.startsWith("data:image") ||
+          /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        const extension = isImage ? ".jpg" : ".mp3";
+        const type = isImage ? "image" : "audio";
+
+        if (url.startsWith("data:")) {
+          zip.file(`${type}_${index + 1}${extension}`, url.split(",")[1], {
+            base64: true,
+          });
         } else {
           const response = await fetch(getMediaUrl(url));
           const blob = await response.blob();
@@ -524,19 +538,19 @@ const AdminDashboard = () => {
       });
 
       await Promise.all(promises);
-      const content = await zip.generateAsync({ type: 'blob' });
-      const link = document.createElement('a');
+      const content = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(content);
       link.download = `todas_midias_${new Date().getTime()}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
-      
-      toast.success('Download iniciado com sucesso');
+
+      toast.success("Download iniciado com sucesso");
     } catch (error) {
-      console.error('Erro ao baixar todas as mídias:', error);
-      toast.error('Falha ao baixar arquivos');
+      console.error("Erro ao baixar todas as mídias:", error);
+      toast.error("Falha ao baixar arquivos");
     }
   };
 
@@ -558,7 +572,9 @@ const AdminDashboard = () => {
     <main className="overflow-hidden min-h-screen bg-gray-50">
       <div className="max-w-[90rem] mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 h-screen overflow-y-auto">
         <div className="flex flex-col gap-4 justify-between items-start sm:flex-row sm:items-center">
-          <h1 className="text-xl sm:text-2xl font-bold">Painel Administrativo</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">
+            Painel Administrativo
+          </h1>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
             <Button
               onClick={() => router.push("/map")}
@@ -590,23 +606,37 @@ const AdminDashboard = () => {
             {/* Painel de Análises */}
             <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
               <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Total de Histórias</h3>
-                <p className="text-2xl sm:text-3xl font-bold">{analytics.totalStories}</p>
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">
+                  Total de Histórias
+                </h3>
+                <p className="text-2xl sm:text-3xl font-bold">
+                  {analytics.totalStories}
+                </p>
               </div>
               <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Conteúdo Sinalizado</h3>
-                <p className="text-2xl sm:text-3xl font-bold">{analytics.flaggedContent}</p>
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">
+                  Conteúdo Sinalizado
+                </h3>
+                <p className="text-2xl sm:text-3xl font-bold">
+                  {analytics.flaggedContent}
+                </p>
               </div>
               <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-2 text-sm sm:text-lg font-semibold">Histórias com Mídia</h3>
-                <p className="text-2xl sm:text-3xl font-bold">{analytics.storiesWithMedia}</p>
+                <h3 className="mb-2 text-sm sm:text-lg font-semibold">
+                  Histórias com Mídia
+                </h3>
+                <p className="text-2xl sm:text-3xl font-bold">
+                  {analytics.storiesWithMedia}
+                </p>
               </div>
             </div>
 
             {/* Gráficos */}
             <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
               <div className="p-3 sm:p-4 bg-white rounded-lg shadow">
-                <h3 className="mb-4 text-sm sm:text-lg font-semibold">Histórias por Dia</h3>
+                <h3 className="mb-4 text-sm sm:text-lg font-semibold">
+                  Histórias por Dia
+                </h3>
                 <div style={{ width: "100%", height: 250, minHeight: "250px" }}>
                   <ResponsiveContainer>
                     <LineChart data={analytics.dailyPosts}>
@@ -687,20 +717,30 @@ const AdminDashboard = () => {
                           <TableHead className="w-[150px]">Usuário</TableHead>
                           <TableHead>Conteúdo</TableHead>
                           <TableHead className="w-[100px]">Mídia</TableHead>
-                          <TableHead className="w-[120px]">Localização</TableHead>
+                          <TableHead className="w-[120px]">
+                            Localização
+                          </TableHead>
                           <TableHead className="w-[180px]">Data</TableHead>
-                          <TableHead className="w-[150px]">Sinalizações</TableHead>
+                          <TableHead className="w-[150px]">
+                            Sinalizações
+                          </TableHead>
                           <TableHead className="w-[100px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {stories.map((story) => {
-                          const flags = checkInappropriateContent(story.content);
-                          const images = (story.mediaUrls || []).filter((url) =>
-                            url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+                          const flags = checkInappropriateContent(
+                            story.content,
                           );
-                          const audios = (story.mediaUrls || []).filter((url) =>
-                            url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
+                          const images = (story.mediaUrls || []).filter(
+                            (url) =>
+                              url.startsWith("data:image") ||
+                              /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+                          );
+                          const audios = (story.mediaUrls || []).filter(
+                            (url) =>
+                              url.startsWith("data:audio") ||
+                              /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url),
                           );
 
                           return (
@@ -793,7 +833,12 @@ const AdminDashboard = () => {
                 <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
                   <div className="flex justify-between flex-1 sm:hidden">
                     <Button
-                      onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          page: Math.max(prev.page - 1, 1),
+                        }))
+                      }
                       disabled={pagination.page === 1}
                       variant="outline"
                       size="sm"
@@ -801,7 +846,12 @@ const AdminDashboard = () => {
                       Anterior
                     </Button>
                     <Button
-                      onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, pagination.totalPages) }))}
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          page: Math.min(prev.page + 1, pagination.totalPages),
+                        }))
+                      }
                       disabled={pagination.page === pagination.totalPages}
                       variant="outline"
                       size="sm"
@@ -812,13 +862,27 @@ const AdminDashboard = () => {
                   <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm text-gray-700">
-                        Mostrando página <span className="font-medium">{pagination.page}</span> de <span className="font-medium">{pagination.totalPages}</span> ({pagination.total} resultados)
+                        Mostrando página{" "}
+                        <span className="font-medium">{pagination.page}</span>{" "}
+                        de{" "}
+                        <span className="font-medium">
+                          {pagination.totalPages}
+                        </span>{" "}
+                        ({pagination.total} resultados)
                       </p>
                     </div>
                     <div>
-                      <nav className="inline-flex relative z-0 -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                      <nav
+                        className="inline-flex relative z-0 -space-x-px rounded-md shadow-sm"
+                        aria-label="Pagination"
+                      >
                         <Button
-                          onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 1) }))}
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.max(prev.page - 1, 1),
+                            }))
+                          }
                           disabled={pagination.page === 1}
                           variant="outline"
                           className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
@@ -827,13 +891,24 @@ const AdminDashboard = () => {
                           <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                         </Button>
                         <Button
-                          onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, pagination.totalPages) }))}
+                          onClick={() =>
+                            setPagination((prev) => ({
+                              ...prev,
+                              page: Math.min(
+                                prev.page + 1,
+                                pagination.totalPages,
+                              ),
+                            }))
+                          }
                           disabled={pagination.page === pagination.totalPages}
                           variant="outline"
                           className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
                         >
                           <span className="sr-only">Próxima</span>
-                          <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                          <ChevronRight
+                            className="w-5 h-5"
+                            aria-hidden="true"
+                          />
                         </Button>
                       </nav>
                     </div>
@@ -844,11 +919,15 @@ const AdminDashboard = () => {
                 <div className="lg:hidden space-y-3">
                   {stories.map((story) => {
                     const flags = checkInappropriateContent(story.content);
-                    const images = (story.mediaUrls || []).filter((url) =>
-                      url.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+                    const images = (story.mediaUrls || []).filter(
+                      (url) =>
+                        url.startsWith("data:image") ||
+                        /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
                     );
-                    const audios = (story.mediaUrls || []).filter((url) =>
-                      url.startsWith("data:audio") || /\.(mp3|wav|ogg|m4a)$/i.test(url),
+                    const audios = (story.mediaUrls || []).filter(
+                      (url) =>
+                        url.startsWith("data:audio") ||
+                        /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url),
                     );
 
                     return (
@@ -876,14 +955,16 @@ const AdminDashboard = () => {
                               {story.content}
                             </p>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-2">
                             {images.length > 0 && (
                               <div className="flex gap-1">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleMediaPreview(story, "image")}
+                                  onClick={() =>
+                                    handleMediaPreview(story, "image")
+                                  }
                                   className="text-xs"
                                 >
                                   <ImageIcon className="w-3 h-3 mr-1" />
@@ -892,7 +973,7 @@ const AdminDashboard = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => downloadZip(images, 'image')}
+                                  onClick={() => downloadZip(images, "image")}
                                   className="text-xs"
                                 >
                                   ↓
@@ -904,7 +985,9 @@ const AdminDashboard = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleMediaPreview(story, "audio")}
+                                  onClick={() =>
+                                    handleMediaPreview(story, "audio")
+                                  }
                                   className="text-xs"
                                 >
                                   <Music className="w-3 h-3 mr-1" />
@@ -913,7 +996,7 @@ const AdminDashboard = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => downloadZip(audios, 'audio')}
+                                  onClick={() => downloadZip(audios, "audio")}
                                   className="text-xs"
                                 >
                                   ↓

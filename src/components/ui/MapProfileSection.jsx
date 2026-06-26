@@ -171,9 +171,9 @@ const MapProfileSection = ({ user, onLogout, isOpen }) => {
                           <div 
                             key={index}
                             className="relative cursor-pointer group"
-                            onClick={() => !url.match(/\.(mp3|wav|ogg|m4a)$/i) && setSelectedImage(url)}
+                            onClick={() => !url.match(/\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i) && setSelectedImage(url)}
                           >
-                            {url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
+                            {url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url) ? (
                               <div className="w-full h-16 bg-blue-50 flex items-center justify-center rounded-md border border-blue-100">
                                 <span className="text-xs font-medium text-blue-600">🎵 Áudio</span>
                               </div>

@@ -127,7 +127,7 @@ const StoryModificationDialog = ({ story, isOpen, onClose }) => {
                       className="relative group bg-gray-100 rounded-lg p-2 w-20 h-20"
                     >
                       {file.type.startsWith('image/') ? (
-                        <Image
+                        <img
                           src={URL.createObjectURL(file)}
                           alt={`Preview ${index + 1}`}
                           className="w-full h-full object-cover rounded"

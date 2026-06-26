@@ -9,12 +9,18 @@ if (typeof window !== 'undefined') {
   require('mapbox-gl/dist/mapbox-gl.css');
 }
 
+export const viewport = {
+  themeColor: '#ff6b4a',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+};
+
 export const metadata = {
   title: 'Céus',
   description: 'Compartilhe histórias pelo mundo',
   manifest: '/manifest.json',
-  themeColor: '#ff6b4a',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
   appleWebApp: {
     capable: true,
     title: 'Céus',

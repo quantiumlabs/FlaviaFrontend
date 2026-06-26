@@ -291,7 +291,8 @@ const MapPage = () => {
               alert("Erro desconhecido ao acessar a localização.");
               break;
           }
-        }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
     }
   }, [permissionGranted]);
@@ -796,7 +797,7 @@ const MapPage = () => {
                       </p>
                     </div>
                   </div>
-                ) : (
+                ) : selectedStoryForDialog.content && selectedStoryForDialog.content.trim().length > 0 ? (
                   <div className="mt-6 bg-white border-4 border-slate-300 p-5 relative shadow-inner">
                     <div className="absolute top-0 left-0 w-2 h-2 bg-slate-300 -mt-2 -ml-2"></div>
                     <div className="absolute top-0 right-0 w-2 h-2 bg-slate-300 -mt-2 -mr-2"></div>
@@ -806,7 +807,7 @@ const MapPage = () => {
                       {selectedStoryForDialog.content}
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {selectedStoryForDialog.hasMedia && (
@@ -844,7 +845,7 @@ const MapPage = () => {
                               loading="lazy"
                               unoptimized={true}
                             />
-                          ) : url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(url) ? (
+                          ) : url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a|webm|mp4|aac)$/i.test(url) ? (
                             <div className="bg-slate-100 p-3 border-2 border-slate-200">
                               <PixelArtGameAudioPlayer audioUrl={getMediaUrl(url)} />
                             </div>
