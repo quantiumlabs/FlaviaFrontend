@@ -132,6 +132,11 @@ const COLORS = [
 const MediaPreview = ({ type, urls, onClose, downloadMedia }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Reset index when new URLs are loaded
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [urls]);
+
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + urls.length) % urls.length);
   };
